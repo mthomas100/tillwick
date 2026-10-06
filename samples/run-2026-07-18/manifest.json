@@ -1,0 +1,65 @@
+{
+  "runId": "run-20260718-201530",
+  "startedTs": "2026-07-18T20:15:30.685Z",
+  "startedGameMin": 6180,
+  "duration": {
+    "kind": "minutes",
+    "value": 20
+  },
+  "roster": [
+    {
+      "id": "baker",
+      "name": "baker",
+      "enabled": true,
+      "model": "claude-haiku-4-5-20251001"
+    },
+    {
+      "id": "courier",
+      "name": "courier",
+      "enabled": true,
+      "model": "claude-haiku-4-5-20251001"
+    },
+    {
+      "id": "barista",
+      "name": "barista",
+      "enabled": true,
+      "model": "claude-haiku-4-5-20251001"
+    },
+    {
+      "id": "grocer",
+      "name": "grocer",
+      "enabled": true,
+      "model": "claude-haiku-4-5-20251001"
+    },
+    {
+      "id": "smith",
+      "name": "smith",
+      "enabled": true,
+      "model": "claude-haiku-4-5-20251001"
+    },
+    {
+      "id": "student",
+      "name": "student",
+      "enabled": true,
+      "model": "claude-haiku-4-5-20251001"
+    },
+    {
+      "id": "musician",
+      "name": "musician",
+      "enabled": true,
+      "model": "claude-haiku-4-5-20251001"
+    },
+    {
+      "id": "regular",
+      "name": "regular",
+      "enabled": true,
+      "model": "claude-haiku-4-5-20251001"
+    }
+  ],
+  "gameMinPerRealSec": 1.2,
+  "ceilingUsd": 5,
+  "endedTs": "2026-07-18T20:31:24.575Z",
+  "endedGameMin": 7320,
+  "endReason": "budget-ceiling",
+  "beats": 1485
+}

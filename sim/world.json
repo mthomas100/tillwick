@@ -1,0 +1,182 @@
+{
+  "title": "Tillwick",
+  "width": 64,
+  "height": 38,
+  "tile": 28,
+  "street": { "rows": [9, 10, 27, 28] },
+  "sidewalks": { "rows": [8, 11, 26, 29] },
+  "lanes": {
+    "_note": "OPTIONAL 2D enrichment for W2-move. `cols` are vertical walkable columns that bridge the North (rows 8-11) and South (rows 26-29) corridors through Johnson Park. The CURRENT sim (sim/sim-server.ts) walkability is rows-only and IGNORES this field, so intra-corridor A* is unaffected; cross-corridor routing turns on only when W2-move teaches walkable()/insideTile() to read it (see HOOKS SPEC). Each col entry: walkable tiles at column x for y in [y0,y1].",
+    "cols": [
+      { "x": 31, "y0": 8, "y1": 29 },
+      { "x": 32, "y0": 8, "y1": 29 }
+    ]
+  },
+  "areas": [
+    { "id": "town", "label": "Tillwick", "kind": "town", "parent": null, "buildings": [] },
+    { "id": "main-square", "label": "Main Square", "kind": "district", "parent": "town", "buildings": ["cafe", "grocer", "depot", "bakery", "smithy"] },
+    { "id": "residential-north", "label": "North Residences", "kind": "district", "parent": "town", "buildings": ["home-baker", "home-barista", "home-grocer", "home-courier", "home-smith"] },
+    { "id": "oak-hill", "label": "Oak Hill College", "kind": "campus", "parent": "town", "buildings": ["college", "dorm"] },
+    { "id": "johnson-park", "label": "Johnson Park", "kind": "park", "parent": "town", "buildings": [], "objects": [
+      { "id": "fountain", "label": "stone fountain", "state": "running" },
+      { "id": "park-bench", "label": "park bench" },
+      { "id": "oak-tree", "label": "great oak tree" },
+      { "id": "notice-board", "label": "community notice board" }
+    ] },
+    { "id": "the-commons", "label": "The Commons", "kind": "district", "parent": "town", "buildings": ["pub", "coliving", "townhall"] }
+  ],
+  "buildings": [
+    { "id": "cafe", "type": "shop", "label": "Hobbs Cafe", "area": "main-square", "x": 2, "y": 2, "w": 7, "h": 6, "door": { "x": 5, "y": 8 }, "color": "#7b4a2e", "goods": [{ "id": "coffee", "price": "$0.02" }],
+      "rooms": [
+        { "id": "cafe-floor", "label": "cafe floor", "objects": [{ "id": "cafe-counter", "label": "service counter" }, { "id": "espresso-machine", "label": "espresso machine", "state": "idle" }, { "id": "cafe-tables", "label": "small tables" }, { "id": "cafe-register", "label": "register" }] },
+        { "id": "cafe-kitchen", "label": "back kitchen", "objects": [{ "id": "cafe-roaster", "label": "coffee roaster", "state": "off" }, { "id": "cafe-bean-shelf", "label": "shelf of beans" }] }
+      ],
+      "interior": { "w": 12, "h": 9, "theme": "kitchen", "floor": "tile", "wall": "tile", "tile": 32, "spawnInside": { "x": 6, "y": 8 }, "sublocations": [
+        { "id": "cafe-counter", "label": "service counter", "kind": "counter", "x": 6, "y": 2, "station": true },
+        { "id": "espresso-machine", "label": "espresso machine", "kind": "appliance", "x": 8, "y": 2, "station": true },
+        { "id": "cafe-table-1", "label": "window table", "kind": "table", "x": 2, "y": 5, "seats": [{ "x": 1, "y": 5 }, { "x": 3, "y": 5 }] },
+        { "id": "cafe-table-2", "label": "corner table", "kind": "table", "x": 2, "y": 7, "seats": [{ "x": 1, "y": 7 }, { "x": 3, "y": 7 }] },
+        { "id": "cafe-register", "label": "register", "kind": "register", "x": 4, "y": 2 }
+      ] } },
+    { "id": "grocer", "type": "shop", "label": "Willows Market & Pharmacy", "area": "main-square", "x": 11, "y": 2, "w": 9, "h": 6, "door": { "x": 15, "y": 8 }, "color": "#3f7d4f", "goods": [{ "id": "apple", "price": "$0.01" }, { "id": "milk", "price": "$0.02" }],
+      "rooms": [
+        { "id": "market-floor", "label": "market floor", "objects": [{ "id": "produce-stand", "label": "produce stand" }, { "id": "grocery-shelves", "label": "grocery shelves" }, { "id": "pharmacy-counter", "label": "pharmacy counter" }, { "id": "grocer-register", "label": "register" }] },
+        { "id": "market-storeroom", "label": "storeroom", "objects": [{ "id": "market-crates", "label": "delivery crates", "state": "stocked" }, { "id": "market-cooler", "label": "walk-in cooler" }] }
+      ],
+      "interior": { "w": 13, "h": 9, "theme": "grocery", "floor": "tile", "wall": "tile", "tile": 32, "spawnInside": { "x": 6, "y": 8 }, "sublocations": [
+        { "id": "grocer-register", "label": "checkout counter", "kind": "counter", "x": 6, "y": 2, "station": true },
+        { "id": "produce-stand", "label": "produce stand", "kind": "shelf", "x": 2, "y": 4 },
+        { "id": "grocery-shelves", "label": "grocery shelves", "kind": "shelf", "x": 10, "y": 4 },
+        { "id": "pharmacy-counter", "label": "pharmacy counter", "kind": "counter", "x": 10, "y": 2 },
+        { "id": "market-crates", "label": "delivery crates", "kind": "shelf", "x": 2, "y": 7 }
+      ] } },
+    { "id": "depot", "type": "shop", "label": "Harvey Oak Supply Store", "area": "main-square", "x": 23, "y": 2, "w": 9, "h": 6, "door": { "x": 27, "y": 8 }, "color": "#8a6d3b", "goods": [{ "id": "delivery", "price": "$0.03" }],
+      "producer": { "produces": "delivery", "ratePerGameHour": 4, "note": "Harvey Oak is the goods PRODUCER — creates stock over game-time (W5 economy hook)." },
+      "rooms": [
+        { "id": "supply-floor", "label": "supply floor", "objects": [{ "id": "supply-counter", "label": "supply counter" }, { "id": "tool-wall", "label": "wall of tools" }, { "id": "supply-register", "label": "register" }] },
+        { "id": "supply-workshop", "label": "workshop", "objects": [{ "id": "workbench", "label": "workbench" }, { "id": "supply-crate", "label": "supply crate", "state": "stocked" }, { "id": "pallet-jack", "label": "pallet jack" }] }
+      ],
+      "interior": { "w": 13, "h": 9, "theme": "workshop", "floor": "stone", "wall": "brick", "tile": 32, "spawnInside": { "x": 6, "y": 8 }, "sublocations": [
+        { "id": "supply-counter", "label": "supply counter", "kind": "counter", "x": 6, "y": 2, "station": true },
+        { "id": "workbench", "label": "workbench", "kind": "desk", "x": 2, "y": 4, "station": true },
+        { "id": "tool-wall", "label": "wall of tools", "kind": "shelf", "x": 10, "y": 3 },
+        { "id": "supply-crate", "label": "supply crates", "kind": "shelf", "x": 10, "y": 6 },
+        { "id": "supply-register", "label": "register", "kind": "register", "x": 4, "y": 2 }
+      ] } },
+    { "id": "bakery", "type": "shop", "label": "Moreno Bakery", "area": "main-square", "x": 37, "y": 2, "w": 7, "h": 6, "door": { "x": 40, "y": 8 }, "color": "#b5651d", "goods": [{ "id": "bread", "price": "$0.01" }, { "id": "bun", "price": "$0.02" }],
+      "rooms": [
+        { "id": "bakery-floor", "label": "bakery floor", "objects": [{ "id": "bakery-display", "label": "display case" }, { "id": "bakery-counter", "label": "counter" }, { "id": "bakery-register", "label": "register" }] },
+        { "id": "bakery-kitchen", "label": "bakehouse", "objects": [{ "id": "oven", "label": "brick oven", "state": "warm" }, { "id": "dough-table", "label": "dough table" }, { "id": "flour-sacks", "label": "flour sacks" }] }
+      ],
+      "interior": { "w": 12, "h": 9, "theme": "kitchen", "floor": "tile", "wall": "brick", "tile": 32, "spawnInside": { "x": 6, "y": 8 }, "sublocations": [
+        { "id": "bakery-counter", "label": "counter", "kind": "counter", "x": 6, "y": 2, "station": true },
+        { "id": "oven", "label": "brick oven", "kind": "appliance", "x": 9, "y": 2, "station": true },
+        { "id": "dough-table", "label": "dough table", "kind": "desk", "x": 9, "y": 5, "station": true },
+        { "id": "bakery-display", "label": "display case", "kind": "shelf", "x": 4, "y": 2 },
+        { "id": "bakery-register", "label": "register", "kind": "register", "x": 2, "y": 2 }
+      ] } },
+    { "id": "smithy", "type": "shop", "label": "Harvey Oak Smithy", "area": "main-square", "x": 47, "y": 2, "w": 7, "h": 6, "door": { "x": 50, "y": 8 }, "color": "#555a5e", "goods": [{ "id": "nail", "price": "$0.02" }],
+      "rooms": [
+        { "id": "smithy-floor", "label": "smithy floor", "objects": [{ "id": "smithy-counter", "label": "counter" }, { "id": "hardware-bins", "label": "hardware bins" }] },
+        { "id": "forge-room", "label": "forge", "objects": [{ "id": "forge", "label": "coal forge", "state": "banked" }, { "id": "anvil", "label": "anvil" }, { "id": "quench-tub", "label": "quench tub" }] }
+      ],
+      "interior": { "w": 12, "h": 9, "theme": "workshop", "floor": "stone", "wall": "brick", "tile": 32, "spawnInside": { "x": 6, "y": 8 }, "sublocations": [
+        { "id": "smithy-counter", "label": "counter", "kind": "counter", "x": 4, "y": 2, "station": true },
+        { "id": "forge", "label": "coal forge", "kind": "appliance", "x": 8, "y": 3, "station": true },
+        { "id": "anvil", "label": "anvil", "kind": "appliance", "x": 8, "y": 5, "station": true },
+        { "id": "hardware-bins", "label": "hardware bins", "kind": "shelf", "x": 2, "y": 4 },
+        { "id": "quench-tub", "label": "quench tub", "kind": "appliance", "x": 10, "y": 5 }
+      ] } },
+
+    { "id": "home-baker", "type": "home", "label": "Lin House", "area": "residential-north", "resident": "baker", "x": 2, "y": 12, "w": 6, "h": 5, "door": { "x": 4, "y": 11 }, "color": "#52607a",
+      "rooms": [
+        { "id": "home-baker-kitchen", "label": "kitchen", "objects": [{ "id": "home-baker-stove", "label": "stove", "state": "off" }, { "id": "home-baker-fridge", "label": "fridge" }, { "id": "home-baker-table", "label": "kitchen table" }] },
+        { "id": "home-baker-bedroom", "label": "bedroom", "objects": [{ "id": "home-baker-bed", "label": "bed" }, { "id": "home-baker-desk", "label": "desk" }, { "id": "home-baker-wardrobe", "label": "wardrobe" }] }
+      ] },
+    { "id": "home-barista", "type": "home", "label": "Hobbs House", "area": "residential-north", "resident": "barista", "x": 10, "y": 12, "w": 6, "h": 5, "door": { "x": 12, "y": 11 }, "color": "#52607a",
+      "rooms": [
+        { "id": "home-barista-kitchen", "label": "kitchen", "objects": [{ "id": "home-barista-stove", "label": "stove", "state": "off" }, { "id": "home-barista-fridge", "label": "fridge" }, { "id": "home-barista-table", "label": "kitchen table" }] },
+        { "id": "home-barista-bedroom", "label": "bedroom", "objects": [{ "id": "home-barista-bed", "label": "bed" }, { "id": "home-barista-desk", "label": "desk" }] }
+      ] },
+    { "id": "home-grocer", "type": "home", "label": "Willow House", "area": "residential-north", "resident": "grocer", "x": 18, "y": 12, "w": 6, "h": 5, "door": { "x": 20, "y": 11 }, "color": "#52607a",
+      "rooms": [
+        { "id": "home-grocer-kitchen", "label": "kitchen", "objects": [{ "id": "home-grocer-stove", "label": "stove", "state": "off" }, { "id": "home-grocer-fridge", "label": "fridge" }, { "id": "home-grocer-table", "label": "kitchen table" }] },
+        { "id": "home-grocer-bedroom", "label": "bedroom", "objects": [{ "id": "home-grocer-bed", "label": "bed" }, { "id": "home-grocer-desk", "label": "desk" }] }
+      ] },
+    { "id": "home-courier", "type": "home", "label": "Oak Cottage", "area": "residential-north", "resident": "courier", "x": 40, "y": 12, "w": 6, "h": 5, "door": { "x": 42, "y": 11 }, "color": "#52607a",
+      "rooms": [
+        { "id": "home-courier-kitchen", "label": "kitchen", "objects": [{ "id": "home-courier-stove", "label": "stove", "state": "off" }, { "id": "home-courier-fridge", "label": "fridge" }, { "id": "home-courier-table", "label": "kitchen table" }] },
+        { "id": "home-courier-bedroom", "label": "bedroom", "objects": [{ "id": "home-courier-bed", "label": "bed" }, { "id": "home-courier-desk", "label": "desk" }] }
+      ] },
+    { "id": "home-smith", "type": "home", "label": "Forge House", "area": "residential-north", "resident": "smith", "x": 48, "y": 12, "w": 6, "h": 5, "door": { "x": 50, "y": 11 }, "color": "#52607a",
+      "rooms": [
+        { "id": "home-smith-kitchen", "label": "kitchen", "objects": [{ "id": "home-smith-stove", "label": "stove", "state": "off" }, { "id": "home-smith-fridge", "label": "fridge" }, { "id": "home-smith-table", "label": "kitchen table" }] },
+        { "id": "home-smith-bedroom", "label": "bedroom", "objects": [{ "id": "home-smith-bed", "label": "bed" }, { "id": "home-smith-desk", "label": "desk" }] }
+      ] },
+
+    { "id": "college", "type": "civic", "label": "Oak Hill College", "area": "oak-hill", "x": 2, "y": 20, "w": 11, "h": 6, "door": { "x": 6, "y": 26 }, "color": "#6b6f9c",
+      "rooms": [
+        { "id": "lecture-hall", "label": "lecture hall", "objects": [{ "id": "lectern", "label": "lectern" }, { "id": "lecture-chairs", "label": "rows of chairs" }, { "id": "chalkboard", "label": "chalkboard" }] },
+        { "id": "college-common", "label": "common room", "objects": [{ "id": "college-sofa", "label": "sofa" }, { "id": "bookshelf", "label": "bookshelf" }, { "id": "coffee-urn", "label": "coffee urn", "state": "full" }] }
+      ],
+      "interior": { "w": 14, "h": 9, "theme": "classroom", "floor": "wood", "wall": "plaster", "tile": 32, "spawnInside": { "x": 7, "y": 8 }, "sublocations": [
+        { "id": "study-desk-1", "label": "study desk", "kind": "desk", "x": 3, "y": 5, "station": true, "seats": [{ "x": 3, "y": 6 }] },
+        { "id": "study-desk-2", "label": "study desk", "kind": "desk", "x": 6, "y": 5, "station": true, "seats": [{ "x": 6, "y": 6 }] },
+        { "id": "lectern", "label": "lectern", "kind": "stage", "x": 7, "y": 2, "station": true },
+        { "id": "bookshelf", "label": "bookshelf", "kind": "shelf", "x": 11, "y": 3 },
+        { "id": "college-sofa", "label": "common-room sofa", "kind": "table", "x": 11, "y": 6, "seats": [{ "x": 10, "y": 6 }, { "x": 12, "y": 6 }] },
+        { "id": "coffee-urn", "label": "coffee urn", "kind": "appliance", "x": 1, "y": 3 }
+      ] } },
+    { "id": "dorm", "type": "home", "label": "Oak Hill Dorm", "area": "oak-hill", "x": 15, "y": 20, "w": 8, "h": 6, "door": { "x": 18, "y": 26 }, "color": "#5a6b7a",
+      "rooms": [
+        { "id": "dorm-common", "label": "dorm common room", "objects": [{ "id": "dorm-sofa", "label": "couch" }, { "id": "dorm-tv", "label": "television", "state": "off" }, { "id": "dorm-kitchenette", "label": "kitchenette" }] },
+        { "id": "dorm-rooms", "label": "dorm rooms", "objects": [{ "id": "dorm-beds", "label": "bunk beds" }, { "id": "dorm-desks", "label": "study desks" }] }
+      ],
+      "interior": { "w": 11, "h": 9, "theme": "bedroom", "floor": "carpet", "wall": "plaster", "tile": 32, "spawnInside": { "x": 5, "y": 8 }, "sublocations": [
+        { "id": "dorm-beds", "label": "bunk bed", "kind": "bed", "x": 2, "y": 2 },
+        { "id": "dorm-desks", "label": "study desk", "kind": "desk", "x": 8, "y": 2, "station": true, "seats": [{ "x": 8, "y": 3 }] },
+        { "id": "dorm-sofa", "label": "couch", "kind": "table", "x": 5, "y": 6, "seats": [{ "x": 4, "y": 6 }, { "x": 6, "y": 6 }] },
+        { "id": "dorm-kitchenette", "label": "kitchenette", "kind": "appliance", "x": 2, "y": 6 }
+      ] } },
+
+    { "id": "pub", "type": "civic", "label": "The Rose & Crown", "area": "the-commons", "x": 44, "y": 20, "w": 9, "h": 6, "door": { "x": 48, "y": 26 }, "color": "#8a3b3b",
+      "rooms": [
+        { "id": "pub-bar", "label": "the bar", "objects": [{ "id": "bar-counter", "label": "bar counter" }, { "id": "bar-stools", "label": "bar stools" }, { "id": "beer-taps", "label": "beer taps" }] },
+        { "id": "pub-snug", "label": "the snug", "objects": [{ "id": "fireplace", "label": "fireplace", "state": "lit" }, { "id": "pub-tables", "label": "wooden tables" }, { "id": "dartboard", "label": "dartboard" }] }
+      ],
+      "interior": { "w": 14, "h": 10, "theme": "pub", "floor": "wood-dark", "wall": "wood", "tile": 32, "spawnInside": { "x": 7, "y": 9 }, "sublocations": [
+        { "id": "pub-stage", "label": "the stage", "kind": "stage", "x": 11, "y": 2, "station": true },
+        { "id": "bar-counter", "label": "bar counter", "kind": "counter", "x": 3, "y": 2, "station": true, "seats": [{ "x": 2, "y": 3 }, { "x": 4, "y": 3 }] },
+        { "id": "pub-table-1", "label": "table by the fire", "kind": "table", "x": 3, "y": 6, "seats": [{ "x": 2, "y": 6 }, { "x": 4, "y": 6 }, { "x": 3, "y": 7 }] },
+        { "id": "pub-table-2", "label": "corner table", "kind": "table", "x": 8, "y": 6, "seats": [{ "x": 7, "y": 6 }, { "x": 9, "y": 6 }, { "x": 8, "y": 7 }] },
+        { "id": "fireplace", "label": "fireplace", "kind": "appliance", "x": 1, "y": 6 },
+        { "id": "dartboard", "label": "dartboard", "kind": "appliance", "x": 12, "y": 6 }
+      ] } },
+    { "id": "coliving", "type": "home", "label": "Co-Living House", "area": "the-commons", "x": 2, "y": 30, "w": 9, "h": 5, "door": { "x": 6, "y": 29 }, "color": "#4f6a5a",
+      "rooms": [
+        { "id": "coliving-kitchen", "label": "shared kitchen", "objects": [{ "id": "coliving-stove", "label": "stove", "state": "off" }, { "id": "coliving-fridge", "label": "shared fridge" }, { "id": "coliving-table", "label": "long table" }] },
+        { "id": "coliving-lounge", "label": "lounge", "objects": [{ "id": "coliving-sofa", "label": "sofa" }, { "id": "coliving-tv", "label": "television", "state": "off" }] }
+      ],
+      "interior": { "w": 12, "h": 9, "theme": "living", "floor": "wood", "wall": "plaster", "tile": 32, "spawnInside": { "x": 6, "y": 8 }, "sublocations": [
+        { "id": "coliving-table", "label": "long table", "kind": "table", "x": 3, "y": 3, "seats": [{ "x": 2, "y": 3 }, { "x": 4, "y": 3 }, { "x": 3, "y": 2 }] },
+        { "id": "coliving-sofa", "label": "lounge sofa", "kind": "table", "x": 8, "y": 6, "seats": [{ "x": 7, "y": 6 }, { "x": 9, "y": 6 }] },
+        { "id": "coliving-stove", "label": "stove", "kind": "appliance", "x": 2, "y": 6, "station": true },
+        { "id": "coliving-bed", "label": "bed", "kind": "bed", "x": 9, "y": 2 }
+      ] } },
+    { "id": "townhall", "type": "civic", "label": "Town Hall", "area": "the-commons", "x": 44, "y": 30, "w": 9, "h": 5, "door": { "x": 48, "y": 29 }, "color": "#9c8b6b",
+      "rooms": [
+        { "id": "townhall-foyer", "label": "foyer", "objects": [{ "id": "townhall-desk", "label": "reception desk" }, { "id": "town-notice", "label": "notice board" }] },
+        { "id": "townhall-chamber", "label": "council chamber", "objects": [{ "id": "council-table", "label": "council table" }, { "id": "council-chairs", "label": "chairs" }] }
+      ] }
+  ],
+  "spawns": {
+    "baker": { "x": 40, "y": 8 },
+    "barista": { "x": 5, "y": 8 },
+    "grocer": { "x": 15, "y": 8 },
+    "courier": { "x": 27, "y": 8 },
+    "smith": { "x": 50, "y": 8 },
+    "student": { "x": 12, "y": 26 },
+    "musician": { "x": 44, "y": 29 },
+    "regular": { "x": 46, "y": 26 }
+  }
+}

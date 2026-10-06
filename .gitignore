@@ -1,0 +1,23 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# secrets: testnet keys and the Claude token live only here
+.env
+.env.local
+
+# wallet keystores (private keys) and the address list they generate
+citizens.local.json
+*.keystore.json
+CITIZEN-WALLETS.local.md
+
+# sim runtime data (event ledger, per-agent transcripts, memories, run tapes)
+sim/data/
+
+# proprietary LimeZu art: buy it and drop it in locally (see renderer/phaser/assets/README.md)
+renderer/phaser/assets/limezu/
+renderer/phaser/assets/_limezu-src/
+
+# local browser-automation scratch
+.playwright-mcp/

@@ -1,0 +1,15 @@
+{
+  "enabled": true,
+  "dryRun": false,
+  "default": { "reserveUSDC": 0.05, "maxPurchaseUSDC": 0.05, "dailyCapUSDC": 1000 },
+  "citizens": {
+    "baker": { "reserveUSDC": 0.05, "maxPurchaseUSDC": 0.05, "dailyCapUSDC": 1000 },
+    "courier": { "reserveUSDC": 0.05, "maxPurchaseUSDC": 0.05, "dailyCapUSDC": 1000 },
+    "barista": { "reserveUSDC": 0.05, "maxPurchaseUSDC": 0.05, "dailyCapUSDC": 1000 },
+    "grocer": { "reserveUSDC": 0.05, "maxPurchaseUSDC": 0.05, "dailyCapUSDC": 1000 },
+    "smith": { "reserveUSDC": 0.05, "maxPurchaseUSDC": 0.05, "dailyCapUSDC": 1000 },
+    "student": { "reserveUSDC": 0.02, "maxPurchaseUSDC": 0.05, "dailyCapUSDC": 1000 },
+    "musician": { "reserveUSDC": 0.02, "maxPurchaseUSDC": 0.05, "dailyCapUSDC": 1000 },
+    "regular": { "reserveUSDC": 0.02, "maxPurchaseUSDC": 0.05, "dailyCapUSDC": 1000 }
+  }
+}

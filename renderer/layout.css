@@ -1,0 +1,116 @@
+/* ============================================================================
+ * layout.css — AUTHORITATIVE positioning layer for the Tillwick renderer.
+ *
+ * Owned by the renderer (cartographer). The ONLY file that sets POSITION + SIZE
+ * + Z-INDEX for the top-level renderer surfaces. Each panel's INTERNAL styling
+ * (colors, fonts, row styles, animations) stays owned by its own file — never
+ * touched here.
+ *
+ * Load LAST in index.html (after the inline <style> and after tx-overlay.js /
+ * inspector.js inject their own runtime <style>) so these rules win the cascade.
+ *
+ * THE LAYOUT (W3 UX polish — no overlaps):
+ *
+ *   +-------------------------------------------+-------------------+
+ *   |                                            |   #feed           |
+ *   |        #left — the MAP (Phaser #c canvas), |  (activity feed)  |
+ *   |        fills the FULL vertical height of   |   TOP, SHORTER    |
+ *   |        the left area (under the #hud band, |   (scrolls)       |
+ *   |        which is an absolute overlay), no    +-------------------+
+ *   |        black band below. Pans within if    |   #tx-overlay     |
+ *   |        taller than fits.                    |  (on-chain txs)   |
+ *   |   [ #inspector-panel floats over the map ] |  BOTTOM, same w   |
+ *   +-------------------------------------------+-------------------+
+ *        map column (flex:1, full height)            right column: 380px
+ *                                                     [feed] stacked over [tx]
+ *
+ * Right column is now a VERTICAL STACK: the activity feed on top (shortened) and
+ * the on-chain tx viewer directly below it — same width, NOT overlapping. The map
+ * fills the whole left column height (the #hud header is absolutely positioned, so
+ * it overlays the top of the map rather than reserving layout space).
+ * ========================================================================== */
+
+:root {
+  /* Right column shared width (feed + tx viewer line up) --------------------- */
+  --right-col-w: 380px;
+
+  /* The right-column vertical split: feed on top, tx viewer below. ----------- */
+  --tx-stack-h: 240px;   /* height of the on-chain tx viewer (bottom of the stack) */
+
+  /* z-index ladder: map < feed/tx < inspector(open) ------------------------- */
+  --z-map: 0;
+  --z-feed: 100;
+  --z-tx: 110;
+  /* inspector keeps its own z-index:9000 from inspector.js — already on top. */
+}
+
+/* --- #app: the flex row [ map | right column ]. Fills the viewport. -------- */
+#app {
+  display: flex;
+  height: 100vh;
+}
+
+/* --- #left (THE MAP area): fills all space left of the right column and the
+ *     FULL vertical height. The canvas is centered within it. The #hud header is
+ *     position:absolute (top-left), so it overlays the map's top — it does NOT
+ *     take layout height — which is exactly what we want: no black band below. - */
+#left {
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;                 /* containing block for #hud + inspector */
+  align-items: center !important;     /* center the canvas vertically in the full-height area */
+  justify-content: center;
+  padding-top: 0 !important;
+  overflow: hidden;                   /* a canvas taller than the area pans (fix #2), doesn't spill */
+  z-index: var(--z-map);
+}
+
+/* --- #c (THE Phaser canvas): fill the FULL height of #left (no 60vh cap). The
+ *     inline `max-height:92vh` is overridden so the town uses the whole vertical
+ *     space; Phaser's Scale.FIT preserves the town's aspect ratio (letterboxing
+ *     on the unconstrained axis). width stays capped to the column. ----------- */
+#c {
+  max-height: 100% !important;   /* was 60vh — fill the full vertical height */
+  max-width: 100% !important;
+}
+
+/* --- #feed (activity feed): TOP of the right column, SHORTENED so the on-chain
+ *     tx viewer fits below it. Fixed-width flex child; its #rows list scrolls. - */
+#feed {
+  width: var(--right-col-w);
+  flex: 0 0 var(--right-col-w);
+  height: calc(100vh - var(--tx-stack-h)) !important;  /* leave room for the tx stack below */
+  align-self: flex-start;
+  z-index: var(--z-feed);
+}
+
+/* --- #tx-overlay (on-chain monitor): BOTTOM-RIGHT, docked UNDER the feed in the
+ *     right column — SAME WIDTH as the feed, the bottom slab of the stack. It does
+ *     NOT overlap the feed (feed height is capped to leave this room) nor the map
+ *     (it's in the right column). tx-overlay.js injects position:fixed; right:14px;
+ *     bottom:14px; width:360px; max-height:60vh — we re-pin + resize it here.
+ *       - right:0 / left:auto      : flush to the right edge, feed-aligned
+ *       - bottom:0 / top:auto      : sit at the very bottom of the right column
+ *       - width: --right-col-w     : EXACTLY the feed width (was 360px)
+ *       - height: --tx-stack-h     : the reserved bottom slab; its list scrolls
+ *     Its glassy look / borders / badges / list styling are untouched. --------- */
+#tx-overlay {
+  position: fixed !important;
+  right: 0 !important;
+  left: auto !important;
+  bottom: 0 !important;
+  top: auto !important;
+  width: var(--right-col-w) !important;
+  height: var(--tx-stack-h) !important;
+  max-height: var(--tx-stack-h) !important;   /* was 60vh — exact slab height */
+  border-radius: 0 !important;                /* flush column slab, not a floating card */
+  border-right: none !important;
+  border-bottom: none !important;
+  z-index: var(--z-tx) !important;
+}
+
+/* --- #inspector-panel (click-to-open detail): CLICK-ANCHORED by inspector.js's
+ *     positionPanel(); we only keep it above everything when open. ------------ */
+#inspector-panel {
+  z-index: 9000 !important;  /* always above feed/tx; matches inspector.js's own value */
+}
