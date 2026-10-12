@@ -1,28 +1,28 @@
-// scripts/verify-interior-earshot.ts — the D20 MECHANICAL GATE for the interior-awareness + EARSHOT upgrade.
-// FOR THE LEAD to run (D11: a teammate never drives a fleet during build). This does NOT spend tokens and does
+// scripts/verify-interior-earshot.ts — the MECHANICAL GATE for the interior-awareness + EARSHOT upgrade.
+// This does NOT spend tokens and does
 // NOT spawn citizens — it proves the SEAM is wired before anyone commits a bounded run to it.
 //
 // Three independent checks, each a hard gate:
 //   (1) PURE MODULES (offline, 0 tokens, no sim): run the two new modules' own self-tests via tsx — sim/earshot.ts
 //       (audience math) + cognition/interior-awareness.ts (occupancy menu). If these fail, the logic is wrong
-//       regardless of wiring. (interiorist owns these; they must stay green.)
-//   (2) /perceive CONTRACT GATE (needs the sim UP, AFTER the lead mounts the hooks + RESTARTS — D20: tsx has no
+//       regardless of wiring. (They must stay green.)
+//   (2) /perceive CONTRACT GATE (needs the sim UP, AFTER the hooks are mounted + the sim RESTARTS — tsx has no
 //       hot-reload, so the new fields only appear on a restart): curl /perceive for a live agent and assert the
 //       NEW additive fields are present with the right SHAPE:
 //         • insideHere.spots — an array (per-spot occupancy/state from interior-awareness), present when inside.
 //         • overheard        — an array (the earshot channel), ALWAYS present (empty is fine).
 //       Field NAMES are constants below so a rename during integration is a one-line change here, keeping the
-//       gate mechanical (the lesson from D20: curl the NEW field as a 10-second gate BEFORE spending a run).
+//       gate mechanical (the lesson: curl the NEW field as a 10-second gate BEFORE spending a run).
 //   (3) PINNED-CONTRACT GUARD: the five pinned /perceive fields (self/agents/buildings/currentShop/adjacentTo)
 //       still exist — the upgrade is ADDITIVE, never removes.
 //
-// Usage (lead):
+// Usage:
 //   npx tsx scripts/verify-interior-earshot.ts                 # all checks (skips (2)/(3) if sim is down)
 //   AGENT=barista npx tsx scripts/verify-interior-earshot.ts   # gate /perceive for a specific agent
 //   ONLY=pure npx tsx scripts/verify-interior-earshot.ts       # just the offline module self-tests
 //
 // NOTE: this gate proves the CONTRACT (the fields exist + shape). The BEHAVIORAL proof (an agent ENTER →
-// occupancy-menu → MOVE off the door → OVERHEAR) is the lead's bounded run reading events.jsonl/dialogue.jsonl +
+// occupancy-menu → MOVE off the door → OVERHEAR) is a bounded run reading events.jsonl/dialogue.jsonl +
 // per-agent memory streams (the §6 acceptance) — same instrument family as verify-A1.ts. Kept separate so the
 // cheap mechanical gate runs in 10s without a fleet.
 
@@ -71,13 +71,13 @@ function runPureSelfTests(): void {
   }
 }
 
-// (2)+(3) /perceive CONTRACT GATE — needs the sim up (after the lead mounts + RESTARTS). Asserts the new
+// (2)+(3) /perceive CONTRACT GATE — needs the sim up (after the hooks are mounted + the sim RESTARTS). Asserts the new
 // additive fields exist with the right shape AND the pinned fields survive.
 async function runContractGate(): Promise<void> {
   console.log(`\n[2] /perceive CONTRACT GATE (sim ${SIM}, agent=${AGENT})`);
   const meta = await getJson(`${SIM}/meta`);
   if (!meta) {
-    console.log("  • sim not responding — SKIPPING the contract gate. Start a FRESH sim (D20: tsx has no");
+    console.log("  • sim not responding — SKIPPING the contract gate. Start a FRESH sim (tsx has no");
     console.log("    hot-reload; the new fields only appear after a restart) then re-run, or run ONLY=pure.");
     return;
   }
@@ -91,20 +91,20 @@ async function runContractGate(): Promise<void> {
   }
 
   // (2a) overheard — ALWAYS present (empty array is fine; it's the earshot ear).
-  //      Record shape (lead's ACK'd refinement): {listener, from, to?, gist, atGameMin, kind, at?}.
+  //      Record shape: {listener, from, to?, gist, atGameMin, kind, at?}.
   if (Array.isArray(p[FIELD_OVERHEARD])) {
     pass(`'${FIELD_OVERHEARD}' present and is an array (len ${p[FIELD_OVERHEARD].length}) — earshot channel wired`);
     const sample = p[FIELD_OVERHEARD][0];
     if (sample && typeof sample === "object") {
       const hasCore = ("from" in sample) && (("gist" in sample) || ("text" in sample));
       hasCore ? pass(`'${FIELD_OVERHEARD}'[0] has {from, gist|text}`) : fail(`'${FIELD_OVERHEARD}'[0] is missing {from, gist|text}: ${JSON.stringify(sample)}`);
-      // kind distinguishes overheard-say vs overheard-dialogue (lead refinement).
+      // kind distinguishes overheard-say vs overheard-dialogue.
       ("kind" in sample) && (sample.kind === "say" || sample.kind === "dialogue")
         ? pass(`'${FIELD_OVERHEARD}'[0].kind is "say"|"dialogue"`)
         : fail(`'${FIELD_OVERHEARD}'[0].kind missing/invalid (want "say"|"dialogue"): ${JSON.stringify(sample.kind)}`);
     }
   } else {
-    fail(`'${FIELD_OVERHEARD}' MISSING or not an array — earshot not wired into /perceive (lead hook). got: ${typeof p[FIELD_OVERHEARD]}`);
+    fail(`'${FIELD_OVERHEARD}' MISSING or not an array — earshot not wired into /perceive. got: ${typeof p[FIELD_OVERHEARD]}`);
   }
 
   // (2a') nearbyEvents — the presence-delta channel (entered/left/sat/moved), ALWAYS present (empty is fine).
@@ -117,7 +117,7 @@ async function runContractGate(): Promise<void> {
       ok ? pass(`'${FIELD_NEARBY_EVENTS}'[0] has {actor, verb, place}`) : fail(`'${FIELD_NEARBY_EVENTS}'[0] missing {actor,verb,place}: ${JSON.stringify(s)}`);
     }
   } else {
-    fail(`'${FIELD_NEARBY_EVENTS}' MISSING or not an array — presence-deltas not wired into /perceive (lead hook). got: ${typeof p[FIELD_NEARBY_EVENTS]}`);
+    fail(`'${FIELD_NEARBY_EVENTS}' MISSING or not an array — presence-deltas not wired into /perceive. got: ${typeof p[FIELD_NEARBY_EVENTS]}`);
   }
 
   // (2b) insideHere.spots — present when the agent is inside a modelled interior. If the agent isn't inside
@@ -126,7 +126,7 @@ async function runContractGate(): Promise<void> {
   if (!inside) {
     console.log(`  • ${AGENT} is not inside a modelled interior this instant — can't gate insideHere.${FIELD_INSIDE_SPOTS}`);
     console.log(`    here. Re-run with an agent currently inside (AGENT=…), or rely on the pure self-test +`);
-    console.log(`    the lead's bounded run for the in-situ proof.`);
+    console.log(`    a bounded run for the in-situ proof.`);
   } else if (Array.isArray((inside as Record<string, unknown>)[FIELD_INSIDE_SPOTS])) {
     const spots = (inside as Record<string, any[]>)[FIELD_INSIDE_SPOTS];
     pass(`insideHere.${FIELD_INSIDE_SPOTS} present and is an array (${spots.length} spots) — occupancy menu wired`);
@@ -137,7 +137,7 @@ async function runContractGate(): Promise<void> {
       missing.length === 0 ? pass(`insideHere.${FIELD_INSIDE_SPOTS}[0] has {id,label,kind,occupants}`) : fail(`insideHere.${FIELD_INSIDE_SPOTS}[0] missing ${missing.join(",")}: ${JSON.stringify(s0)}`);
     }
   } else {
-    fail(`insideHere present but '${FIELD_INSIDE_SPOTS}' MISSING/not an array — interior-awareness not wired into perception.ts (behaviorist hook).`);
+    fail(`insideHere present but '${FIELD_INSIDE_SPOTS}' MISSING/not an array — interior-awareness not wired into perception.ts.`);
   }
 }
 
@@ -148,9 +148,9 @@ function jsonl(file: string): any[] {
 }
 
 // (4) BEHAVIORAL ACCEPTANCE (§6) — reads events.jsonl / dialogue.jsonl / the memory streams AFTER a bounded run
-// and proves the chain the operator asked for: an agent ENTERed an interior → got an occupancy-aware menu → MOVED
+// and proves the target chain: an agent ENTERed an interior → got an occupancy-aware menu → MOVED
 // to a real sub-location (NOT the door) → OVERHEARD a nearby conversation (an "overheard …" memory landed in a
-// non-participant's stream). Pure post-hoc read — no fleet, no tokens. Run AFTER the lead's bounded run.
+// non-participant's stream). Pure post-hoc read — no fleet, no tokens. Run AFTER a bounded run.
 function runBehavioralAcceptance(): void {
   console.log("\n[4] BEHAVIORAL ACCEPTANCE (§6 — reads the run's on-disk evidence; 0 tokens, no fleet)");
   const memDir = join(DATA, "memory");
@@ -170,7 +170,7 @@ function runBehavioralAcceptance(): void {
     pass(`OVERHEAR: ${overheardMems.length} "overheard …" memor${overheardMems.length === 1 ? "y" : "ies"} folded into streams — earshot reached non-participants`);
     const eg = overheardMems[0];
     console.log(`      e.g. [${eg.id}] (imp ${eg.importance ?? "?"}): "${String(eg.text).slice(0, 110)}"`);
-    // bonus: did a diffusable rumor get the importance-6 bump? (behaviorist's Q2 mechanic)
+    // bonus: did a diffusable rumor get the importance-6 bump? (the rumor-diffusion mechanic)
     const rumor = overheardMems.find((m) => Number(m.importance) >= 6);
     if (rumor) console.log(`      info-diffusion: an overheard rumor was stored at importance ${rumor.importance} (competes in retrieval ✓)`);
   } else {
@@ -211,7 +211,7 @@ async function main(): Promise<void> {
 
   console.log(`\n=== ${failures === 0 ? "ALL GATES PASSED ✅" : `${failures} GATE(S) FAILED ❌`} ===`);
   if (failures === 0 && ONLY !== "pure" && ONLY !== "behavior") {
-    console.log("Contract is wired. Next: the lead runs a BOUNDED behavioral run, then `ONLY=behavior npx tsx");
+    console.log("Contract is wired. Next: run a BOUNDED behavioral run, then `ONLY=behavior npx tsx");
     console.log("scripts/verify-interior-earshot.ts` proves §6 from the run's events.jsonl / dialogue.jsonl /");
     console.log("sim/data/memory/<id>.jsonl: ENTER → occupancy menu → MOVE off the door → OVERHEAR.");
   }

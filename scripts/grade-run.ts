@@ -1,7 +1,7 @@
-// grade-run.ts — the God's-eye SCORECARD CLI (Wave A2). Reads the sim's own logs and prints the M1-M8
-// scorecard (the scorecard) with PASS/WARN/FAIL per metric and a one-line verdict — the harsh-critic's
-// instrument AND the lead's before/after gate for the A1 keystone. "Flat numbers = not there yet, seen
-// without a screenshot." (D24.)
+// grade-run.ts — the God's-eye SCORECARD CLI. Reads the sim's own logs and prints the M1-M8
+// scorecard (the scorecard) with PASS/WARN/FAIL per metric and a one-line verdict — the
+// instrument AND the before/after gate for the schedule keystone. "Flat numbers = not there yet, seen
+// without a screenshot."
 //
 //   npm run grade                       # grade the whole events.jsonl
 //   npm run grade -- --run latest       # T0-tape: grade ONE recorded run (manifest window + tape M7/M9)
@@ -95,7 +95,7 @@ function renderScorecard(t: Telemetry): string {
   L.push(`${c.bold}${c.cyan}  God's-eye scorecard${c.reset}  ${c.dim}— Tillwick${c.reset}`);
   L.push(rule);
 
-  // header: the slice + the role map M2 graded against (transparency — D-A2-4)
+  // header: the slice + the role map M2 graded against (transparency)
   const s = t.slice;
   const sliceLabel = s.label ?? (s.sinceTs ? `since ${s.sinceTs}` : "whole log");
   L.push(
@@ -128,7 +128,7 @@ function renderScorecard(t: Telemetry): string {
 
   L.push(rule);
 
-  // verdict — behavior layer (M1-M6) is the operator's "living their lives + really talking"
+  // verdict — behavior layer (M1-M6) is "living their lives + really talking"
   const behavior = t.metrics.filter((m) => ["M1", "M2", "M3", "M4", "M5", "M6"].includes(m.id));
   const behaviorGreen = behavior.filter((m) => m.grade === "pass").length;
   const verdictColor = t.greenCount >= 6 ? c.green : t.greenCount >= 3 ? c.yellow : c.red;

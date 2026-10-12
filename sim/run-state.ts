@@ -1,6 +1,6 @@
 // The sim's RUN-STATE machine — the single governor of whether the citizen fleet may spend tokens.
 //
-// This is the structural fix for INC-2026-06-18 (a 24/7 unattended citizen loop drained the subscription usage budget;
+// This is the structural fix for runaway runs (an early build's unattended citizen loop ran around the clock;
 // closing the browser did NOT stop it). Here the SIM (the world authority, which never calls an LLM) owns
 // a run-state that citizens MUST poll and gate on. Properties:
 //   • pause-on-no-viewer  — 0 connected GUI viewers ⇒ paused ⇒ citizens stop querying (zero burn).
@@ -23,9 +23,9 @@ export type Duration =
 export type GameClock = { day: number; hh: number; mm: number };
 export type RosterEntry = { id: string; name: string; enabled: boolean; model: string };
 
-// Defaults are deliberately conservative — the incident proves an unbounded fleet is dangerous.
+// Defaults are deliberately conservative — an unbounded fleet is dangerous.
 const CEILING_USD = Number(process.env.FLEET_CEILING_USD ?? 5); // hard fleet budget ceiling (API-equiv $)
-// A1 (MAKE IT AWESOME, Pillar I): a ~20-MINUTE game-day so a bounded run actually sees the day turn — morning
+// A ~20-MINUTE game-day so a bounded run actually sees the day turn — morning
 // rush → afternoon → evening → home — instead of the paper's 24-min-per-day pace where a short run never leaves
 // the morning. 1440 game-min / (20 real-min · 60 s) = 1.2 game-min per real-second. Single tunable constant
 // (env-overridable for experiments); it is the ONLY day-length knob — it also feeds remainingMs()/tickAdvance(),

@@ -46,7 +46,7 @@ const SHOP_PRIMARY_GOOD: Record<string, string> = {};
 for (const b of world.buildings) if (b.goods && b.goods[0]) SHOP_PRIMARY_GOOD[b.id] = b.goods[0].id;
 // role → { verb, good }. The verb name matches persona.tools[0] (the role token S1-1 declared); the good is
 // derived from that role's shop so this stays a single source of truth with the registry + world.json.
-// A3 status: `emoji` + a SHORT `text` (≤24 chars) are SEPARATE fields per scenewright's renderer contract —
+// A3 status: `emoji` + a SHORT `text` (≤24 chars) are SEPARATE fields per the renderer contract —
 // the renderer draws `emoji` over the actor + `text` in the bubble (and maps verb→emoji itself as a fallback).
 const PRODUCER: Record<string, { verb: string; flavor: string; emoji: string; text: string }> = {
   baker: { verb: "bake", flavor: "pull a fresh loaf from the oven", emoji: "🥖", text: "baking…" },
@@ -110,7 +110,7 @@ const turnByCitizen: Record<string, number> = {};
 export const setTurn = (id: string, t: number) => (turnByCitizen[id] = t);
 const currentTurn = (id: string) => turnByCitizen[id] ?? 0;
 
-// T0 NEVER-STUCK (operator D28 invariant 1): per-citizen per-tick outcome tally — how many world-tool calls
+// T0 NEVER-STUCK (invariant 1): per-citizen per-tick outcome tally — how many world-tool calls
 // SUCCEEDED vs came back BLOCKED (unreachable move, ghost go_inside, rejected talk). The citizen loop reads
 // this after each ACT turn (takeTurnOutcome resets) to detect "N consecutive ticks where nothing landed" and
 // force a change of approach. Kept here because the tools are the only place that sees every outcome.
@@ -127,7 +127,7 @@ export function takeTurnOutcome(id: string): { ok: number; blocked: number } {
 
 // Resilient to a momentary sim blip: a fetch/connection error or non-JSON body returns {} rather than
 // throwing, so a single flaky call never crashes a tool or the whole tick. (In normal operation the sim
-// is up — the lead starts it before citizens — but ticks should degrade, not die.)
+// is up before citizens start — but ticks should degrade, not die.)
 async function getJson(url: string): Promise<any> {
   try {
     const res = await fetch(url);
@@ -173,11 +173,11 @@ export function makeWorldServer(id: string) {
       await emit("move", id, { to });
       const r = await post("/act", { agent: id, action: "goTo", to });
       // RICH RETURN (anti-loop): movement resolves over GAME-ticks, not within this ACT turn — so the model
-      // must not re-issue move() waiting to "arrive" (that burns maxTurns; the lead saw baker loop on this).
+      // must not re-issue move() waiting to "arrive" (that burns maxTurns; the baker was seen looping on this).
       // Tell it plainly: you're en route, N tiles to go, ~N ticks, do NOT call move again this turn.
       const steps = typeof r?.steps === "number" ? r.steps : undefined;
       if (r?.ok && steps != null) {
-        // T0 TRUTHFULNESS (audit A1, 2026-07-18): the sim answers {ok, steps:0} BOTH for "you're standing on
+        // T0 TRUTHFULNESS: the sim answers {ok, steps:0} BOTH for "you're standing on
         // the target" AND for "A* found no path" (an unreachable target tile — the pub/college/dorm geometry
         // bug). Saying "you are already at pub" to an agent on the far side of town misled musician/student
         // into 9-turn guess-loops EVERY tick (5/5 error_max_turns). On steps:0, VERIFY against perception:
@@ -189,7 +189,7 @@ export function makeWorldServer(id: string) {
           const hereNow: string | null = (p as { here?: { buildingId?: string } }).here?.buildingId ?? p?.currentShop?.id ?? null;
           if (hereNow !== to) {
             tallyOutcome(id, "blocked");
-            // D32: a blocked action is a tape beat — the stuck-detector + replayer need the reason.
+            // a blocked action is a tape beat — the stuck-detector + replayer need the reason.
             await emit("blocked", id, { tool: "move", to, reason: "unreachable", turn: currentTurn(id) });
             return txt({
               ok: false,
@@ -281,7 +281,7 @@ export function makeWorldServer(id: string) {
     async ({ item }) => {
       const shopId = GOOD_TO_SHOP[item];
       if (!shopId) {
-        // D32: a failed buy is a LOUD tape beat, never a silent ok:false (socialweaver's buy-failed spec).
+        // a failed buy is a LOUD tape beat, never a silent ok:false (the buy-failed spec).
         await emit("buy-failed", id, { item, reason: "no-shop-sells-item", turn: currentTurn(id) }).catch(() => {});
         return txt({ ok: false, error: `no shop sells "${item}"` });
       }
@@ -419,7 +419,7 @@ export function makeWorldServer(id: string) {
         return txt({ ok: true, atSpot: r.sublocationId ?? spot, label: r.label ?? spot, note: `you take your place at ${r.label ?? spot}.` });
       }
       tallyOutcome(id, "blocked");
-      await emit("blocked", id, { tool: "go_inside", spot, reason: "not-inside-or-no-such-spot", turn: currentTurn(id) }); // D32 beat
+      await emit("blocked", id, { tool: "go_inside", spot, reason: "not-inside-or-no-such-spot", turn: currentTurn(id) }); // beat
       return txt({ ok: false, spot, note: r?.note ?? `couldn't go to "${spot}" — are you inside the building, and is that a real spot here? (check your perception's interior list)` });
     },
   );
@@ -442,7 +442,7 @@ export function makeWorldServer(id: string) {
             if (r?.ok && r?.produced) {
               // NOTE: no citizen-side emit("produce") — the sim's /act produce handler already records the
               // event (single-writer); the double emit made 15 real produces read as 30 on the tape
-              // (flightrecorder, 2026-07-18). Same fix applied to give/pick_up/drop below.
+              // (found 2026-07-18). Same fix applied to give/pick_up/drop below.
               tallyOutcome(id, "ok");
               // A3: a VISIBLE role-action status the renderer draws as a bubble (emoji over the actor + "baking…").
               // The generic /event recorder (sim-server.ts:350) accepts kind:"status" as-is (only `say` is
@@ -505,7 +505,7 @@ function clockFromGameMin(gameMinutes: number): { day: number; hh: number; mm: n
 // prompt can tell the agent the time of day AND so the daily plan can drive a "go to your role-location"
 // action. Optional (defaults 0) so a stale caller still compiles; the citizen runtime always supplies it.
 export type PlanMeta = { step: string; until: string; why?: string; building: string; station?: string | null };
-// Structural slice of socialweaver's SocialStep that the affordance menu needs (volition + answered-say
+// Structural slice of the SocialStep that the affordance menu needs (volition + answered-say
 // lookups). Structural on purpose — world-tools stays import-free of social-step; citizen.ts passes the
 // real instance.
 export type SocialView = {
@@ -518,7 +518,7 @@ export async function renderTick(
   tick: number,
   mind?: Mind,
   gameMinutes = 0,
-  // D28 never-stuck: when the citizen loop detected N no-progress ticks, it passes a note here and the
+  // never-stuck: when the citizen loop detected N no-progress ticks, it passes a note here and the
   // prompt's TOP branch becomes "do something different" (see the lines array).
   stuckNote?: string,
   social?: SocialView,
@@ -551,9 +551,9 @@ export async function renderTick(
   let header = persona.system;
   let context: string;
   if (mind) {
-    // W2b: observe the RICH NL perception (perception.ts observationText — the interior, who's adjacent,
+    // Observe the RICH NL perception (perception.ts observationText — the interior, who's adjacent,
     // what's nearby) rather than the raw situation JSON; fall back to the JSON if the sim predates the upgrade.
-    // T0 THROUGHPUT (audit A4): EXPLICIT importance on the hot-loop observes. Un-annotated observe() spends a
+    // T0 THROUGHPUT: EXPLICIT importance on the hot-loop observes. Un-annotated observe() spends a
     // full CLI-spawned LLM call on a 1-integer poignancy score — 2-3 of those per tick were a bigger wall-time
     // cost than the ACT turn itself. Routine perception is 3 (mundane); inbound gossip 4. Salient channels
     // (directed says 7, overheard 5/6) were already explicit. LLM poignancy still scores anything un-annotated.
@@ -577,7 +577,7 @@ export async function renderTick(
       await mind.observe(text, { importance: o.mentionedBelief ? 6 : 5 });
     }
     // B7 NEARBY-EVENTS: ambient presence-deltas (who entered/sat/left around me) at low importance (4). FLOOD-
-    // MITIGATION (my memory-stream tuning): collapse a same-actor "entered"+"sat" into one line, DROP bare
+    // MITIGATION (memory-stream tuning): collapse a same-actor "entered"+"sat" into one line, DROP bare
     // "moved"/"stood" (seat-shuffle noise), cap to the latest few — so ambient context never drowns real
     // observations. This keeps nearbyEvents as the felt "the café is filling up", not a per-tick spam.
     {
@@ -593,7 +593,7 @@ export async function renderTick(
         else if (verbs.has("entered")) folded.push(`${actor} entered${where}`);
         else if (verbs.has("sat")) folded.push(`${actor} sat down at${where}`);
         else if (verbs.has("left")) folded.push(`${actor} left${where}`);
-        else if (verbs.has("approached")) folded.push(`${actor} is coming your way on the street`); // socialweaver's street-approach fan
+        else if (verbs.has("approached")) folded.push(`${actor} is coming your way on the street`); // street-approach fan
       }
       for (const line of folded.slice(-3)) await mind.observe(line, { importance: 4 });
     }
@@ -664,8 +664,8 @@ export async function renderTick(
             : `Your plan for now: "${step.text}". You are NOT there yet — it's at ${buildingLabel(stepTarget!)} (${stepTarget}). move({to:"${stepTarget}"}) to go.`)
         : `You have no set plan for right now — use your judgment (head to your workplace ${places.workId} if it's the work day, or home ${places.homeId} at night).`;
 
-  // B4+B7 → D28 AFFORDANCE MENU: when inside a modelled building, the prompt reads like a person scanning
-  // the room — who's present (at which spot), what you can DO here (occupancy-aware spots via interiorist's
+  // B4+B7 → AFFORDANCE MENU: when inside a modelled building, the prompt reads like a person scanning
+  // the room — who's present (at which spot), what you can DO here (occupancy-aware spots via
   // buildInteriorMenu: at-own-workplace→station · wantsToBuy→register · busy-table→JOIN · empty table), and
   // where your day goes NEXT (the leave-for affordance). One paragraph, not a stack of nudges.
   type InsideHere = { buildingId: string; sublocations: Array<{ id: string; label: string; kind: string; station?: boolean; seats?: Array<{ x: number; y: number }> }>; occupants: Array<{ id: string; sublocationId?: string }> };
@@ -694,7 +694,7 @@ export async function renderTick(
       isShop: !!p.currentShop,
       goods,
       // liveConvosHere: not surfaced to /perceive yet → [] (the menu still distinguishes empty vs occupied tables;
-      // the topic-aware "JOIN them — talking about X" lights up once the lead wires building dialogues to /perceive).
+      // the topic-aware "JOIN them — talking about X" lights up once building dialogues are wired to /perceive).
       conversations: [],
       atOwnWorkplace: inside.buildingId === places.workId,
       wantsToBuy,
@@ -709,9 +709,9 @@ export async function renderTick(
     if (leaveFor) spotBits.push(leaveFor);
     interiorLine = `You're in ${buildingLabel(inside.buildingId)}. Present: ${present}. ${spotBits.join(" · ")}.`;
   }
-  // D28 AFFORDANCE MENU (socialweaver's affordancesFor — supersedes the single commerceHint line): the
+  // AFFORDANCE MENU (affordancesFor — supersedes the single commerceHint line): the
   // evaluated options OF THIS PLACE, occupancy/stock/funds/answered-aware, rendered as a numbered choice
-  // block; ineligible entries carry their suppressor reason for the tape (D32). Atlas vocabulary v0.
+  // block; ineligible entries carry their suppressor reason for the tape. Atlas vocabulary v0.
   const affs = affordancesFor({
     selfId: id,
     buys: persona.buys,
@@ -735,8 +735,8 @@ export async function renderTick(
     `It is ${clock.label}. You are ${id}. ${header}`,
     `Your workplace is ${buildingLabel(places.workId)} (${places.workId}); your home is ${buildingLabel(places.homeId)} (${places.homeId}); you relax at ${buildingLabel(places.hangoutId)} (${places.hangoutId}).`,
     planLine,
-    interiorLine, // D28: situational awareness — who's present at which spot + your place + leave-for
-    menuBlock, // D28: the numbered affordance menu of THIS place ("" when nothing affords)
+    interiorLine, // situational awareness — who's present at which spot + your place + leave-for
+    menuBlock, // the numbered affordance menu of THIS place ("" when nothing affords)
     `You have ${self.usdc ?? "?"} testnet USDC. Keep a small reserve — don't go broke.`,
     `You tend to want: ${persona.buys.join(", ")}.`,
     `You currently OWN: ${ownsStr}. (Don't over-buy; consume what you hold to satisfy a need.)`,
@@ -769,7 +769,7 @@ export async function renderTick(
     })(),
     `Relevant memories + today's plan:\n${context}`,
     `Decide what you do this tick:`,
-    // D28 NEVER-STUCK: when the loop detected consecutive no-progress ticks, breaking the loop OUTRANKS
+    // NEVER-STUCK: when the loop detected consecutive no-progress ticks, breaking the loop OUTRANKS
     // everything — the schedule spine resumes next tick once something lands.
     stuckNote
       ? `- ⚠ YOU ARE STUCK: ${stuckNote} Do something DIFFERENT this tick — do NOT repeat the failed action. Pick another reachable destination, act where you stand, or talk to whoever is near.`
@@ -784,7 +784,7 @@ export async function renderTick(
         ? `- IT IS YOUR WORKING HOURS (${buildingLabel(places.workId)}) and you are NOT there. GO NOW: move({to:"${places.workId}"}).`
         : `- If a citizen adjacent to you just said something to you, reply with talk() — answering them comes FIRST.`,
     // T0 STATION PINNING: at the right building with a declared station → take the spot AND do the work in the
-    // SAME turn (a 2-3 call chain). At 4-8 acted ticks/day (audit A4), arrive→sit→work as three separate ticks
+    // SAME turn (a 2-3 call chain). At 4-8 acted ticks/day, arrive→sit→work as three separate ticks
     // was a whole day; the chain collapses it to one, and holding the spot is what the interior view draws.
     (() => {
       if (!atTarget || !station || !inside) return "";
@@ -813,7 +813,7 @@ export async function renderTick(
     `- You can always greet an adjacent citizen with talk().`,
     `Be decisive. One short sentence of reasoning, then act. Moving somewhere = ONE move() and end your turn. Already at your place = you may CHAIN 2-3 calls (take your spot, then work/serve/talk).`,
   ];
-  // Return the perception too (W2b): the citizen loop drives walk-up-and-talk off THIS pre-ACT perception, so the
+  // Return the perception too: the citizen loop drives walk-up-and-talk off THIS pre-ACT perception, so the
   // dialogue fires on who was adjacent at perception time (not after this tick's move). T0 (additive): planStep
   // — the resolved "what/where/station now" — so the citizen loop can stamp it into the per-tick trace (§7 plan).
   const planStep = replanStep
@@ -823,13 +823,13 @@ export async function renderTick(
       : step
         ? `${step.text} → ${stepTarget ?? "?"}`
         : "";
-  // D32: the plan-step beat's structured payload (the citizen loop emits it once per CHANGE, not per tick).
+  // the plan-step beat's structured payload (the citizen loop emits it once per CHANGE, not per tick).
   const planMeta: PlanMeta | null = block && !replanStep
     ? { step: block.activity, until: fmtMin(block.end), ...(block.reason ? { why: block.reason } : {}), building: block.buildingId, station: station }
     : replanStep
       ? { step: replanStep.text, until: "replan", building: stepTarget ?? "", station: null }
       : null;
-  // D32: the PRESENTED OPTION SET is a tape beat — "which choices did the agent SEE when it made a poor one".
+  // the PRESENTED OPTION SET is a tape beat — "which choices did the agent SEE when it made a poor one".
   // Canonical kind:"menu" (flight-tape-schema layer 3): options[] = the eligible entry ids (atlas-vocab-
   // tagged via the eligible/suppressed detail from affordanceBeatPayload — suppressors WITH reasons ride in
   // the same beat, so an empty options[] plus its reasons is the stuck-precursor flag). tick joins the chain.

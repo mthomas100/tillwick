@@ -121,7 +121,7 @@ the binding constraints; the daily cap is set high (1000) on purpose, because th
 property is the reserve floor (no wallet can be drained), not a gross daily cap. Two kill switches:
 `"enabled": false` (no buys at all) and `"dryRun": true` (the LLM still decides; nothing settles). In one
 early long run, ~811 of 2,200 `worth=true` decisions were blocked by the reserve floor: spending was
-gate-limited, not desire-limited ([observability.md](observability.md) §5).
+gate-limited, not desire-limited.
 
 ## 7. Custody and the ledger
 
@@ -158,13 +158,11 @@ The payment happens in the **citizen** process and the result is reported back t
 
 Citizens authenticate the Agent SDK with **`ANTHROPIC_API_KEY`** by default, as Anthropic's
 [Agent SDK quickstart](https://code.claude.com/docs/en/agent-sdk/quickstart) describes; every process
-checks this at start (`citizens/auth.ts`) and exits with instructions if no key is set. Using your own
-logged-in Claude subscription instead (`CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`, or the CLI
-login with `TILLWICK_USE_CLAUDE_LOGIN=1`) is an explicit opt-in for **personal local experiments only**;
-it is how the project was developed, so the recorded costs are API-list-price equivalents. Either way all
-citizens draw on one account's limits, which is why the safety governor in
-[architecture.md](architecture.md) §1 exists; see the
-[incident post-mortem](incident-2026-06-18-token-drain.md) for what happens without it.
+checks this at start (`citizens/auth.ts`) and exits with instructions if no key is set. Using a local
+Claude login instead (`CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`, or the CLI login with
+`TILLWICK_USE_CLAUDE_LOGIN=1`) is an explicit opt-in for **personal local experiments only**; cost
+figures are always computed at API list prices. Either way all citizens draw on one account's limits,
+which is why the safety governor in [architecture.md](architecture.md) §1 exists.
 
 ## 10. Fixed chain constants
 

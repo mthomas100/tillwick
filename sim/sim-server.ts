@@ -14,7 +14,7 @@ import { assemblePerception } from "./perception.js";
 import { computeTelemetry, loadTelemetryInput, loadAgentActivity } from "./telemetry.js";
 import { InteriorPresence, interiorOf } from "./interiors.js";
 import { earshotAudience, agentLoc, approachDeltas, type NearbyEventVerb } from "./earshot.js";
-import { FlightTape, type TapeLoc } from "./flight-tape.js"; // T0-tape (flightrecorder H1)
+import { FlightTape, type TapeLoc } from "./flight-tape.js"; // T0-tape (H1)
 import { stepAt } from "../citizens/schedules.js"; // T0-spine §3: pure schedule data — the sim still never calls an LLM
 
 // Phase 2 — movement + perception. The sim-server is the world authority (never calls an LLM):
@@ -24,7 +24,7 @@ import { stepAt } from "../citizens/schedules.js"; // T0-spine §3: pure schedul
 const HERE = dirname(fileURLToPath(import.meta.url)); // sim/
 const ROOT = dirname(HERE); // repo root
 const world = JSON.parse(readFileSync(join(HERE, "world.json"), "utf8"));
-// W2b: the map-as-tree (env→NL) + per-agent seen-subgraphs (the sim owns them — it has every position).
+// The map-as-tree (env→NL) + per-agent seen-subgraphs (the sim owns them — it has every position).
 const tree = new WorldTree(world as any);
 const seenByAgent = new Map<string, SeenSubgraph>();
 const seenFor = (id: string): SeenSubgraph => {
@@ -128,7 +128,7 @@ const agents: Agent[] = ids.map((id, i) => {
 const byId = new Map(agents.map((a) => [a.id, a]));
 
 // ---- roster (enable/disable + per-agent model) — the data-driven control surface for the fleet.
-// W0: derived from the live agent ids with safe defaults; the full 25-citizen roster lands later. The SIM
+// Derived from the live agent ids with safe defaults; the full 25-citizen roster lands later. The SIM
 // is the authority for enabled/model — citizens read their own entry from GET /run-state and gate on it.
 const DEFAULT_MODEL = process.env.CITIZEN_MODEL ?? "claude-haiku-4-5-20251001";
 const roster: RosterEntry[] = ids.map((id) => ({ id, name: id, enabled: true, model: DEFAULT_MODEL }));
@@ -149,8 +149,8 @@ app.use(express.static(join(ROOT, "renderer")));
 const DATA = join(ROOT, "sim", "data");
 mkdirSync(DATA, { recursive: true });
 const EVENTS = join(DATA, "events.jsonl");
-const DIALOGUES = join(DATA, "dialogue.jsonl"); // W2b: closed conversation summaries (the sim is the single writer)
-// W2b: in-memory rings of recent dialogues + trades, surfaced per-agent via /perceive so the PARTNER (and the
+const DIALOGUES = join(DATA, "dialogue.jsonl"); // closed conversation summaries (the sim is the single writer)
+// In-memory rings of recent dialogues + trades, surfaced per-agent via /perceive so the PARTNER (and the
 // seller) folds the tie into its OWN relationship graph on its next tick (the initiator/buyer already did).
 const dialogueLog: Array<Record<string, unknown>> = [];
 const tradeLog: Array<Record<string, unknown>> = [];
@@ -158,7 +158,7 @@ const eventLog: Array<Record<string, unknown>> = []; // #15: recent-event ring s
 const sayLog: Array<Record<string, unknown>> = []; // #18: recent one-way say()s so /perceive can surface inbound says DIRECTLY (un-drowned by the listener's own activity)
 const interiors = new InteriorPresence(); // B1: the sim OWNS interior presence (world authority); citizens mutate via /act only
 const RING = 200;
-// interior EARSHOT (interiorist): nearby agents OVERHEAR a say/dialogue, and SENSE presence-deltas (X entered/
+// interior EARSHOT: nearby agents OVERHEAR a say/dialogue, and SENSE presence-deltas (X entered/
 // left/sat/moved). Fanned to the in-earshot audience via the pure sim/earshot.ts. Additive rings (like sayLog);
 // surfaced per-listener in /perceive (overheard + nearbyEvents). The MATH is pure; only the sim knows all positions.
 const overheardLog: Array<Record<string, unknown>> = [];
@@ -210,7 +210,7 @@ function recordEvent(e: { actor: string; kind: string; payload?: unknown; relate
     sayLog.push({ id: `${ev.ts}|${e.actor}|${p.to ?? ""}`, from: e.actor, to: p.to, text: p.text, ts: ev.ts });
     if (sayLog.length > RING) sayLog.shift();
   }
-  // W2b: tap purchases into the trade ring so both the buyer and the seller form trade-graph edges.
+  // Tap purchases into the trade ring so both the buyer and the seller form trade-graph edges.
   if (e.kind === "purchase" && e.payload && typeof e.payload === "object") {
     const p = e.payload as { item?: string; counterparty?: string; price_usdc?: number };
     tradeLog.push({ id: e.txHash ?? `${ev.ts}|${e.actor}|${p.item}`, buyer: e.actor, seller: p.counterparty, item: p.item, priceUsdc: p.price_usdc });
@@ -266,7 +266,7 @@ try {
   /* no ledger yet */
 }
 
-// ---- run-state machine + roster persistence (the INC-2026-06-18 governor; sim owns it, citizens gate on it) ----
+// ---- run-state machine + roster persistence (the safety governor; sim owns it, citizens gate on it) ----
 const runState = new RunState(join(DATA, "run-state.json"));
 const ROSTER_STATE = join(DATA, "roster-state.json");
 function loadRosterState() {
@@ -295,7 +295,7 @@ function saveRosterState() {
 }
 loadRosterState();
 
-// T0-tape H2: the flight tape — every world beat, located in both coord spaces, run-scoped (audit 2026-07-18).
+// T0-tape H2: the flight tape — every world beat, located in both coord spaces, run-scoped.
 // ORDERING: must be created AFTER runState (the constructor may reopen a dangling run and call the clock).
 const tape = new FlightTape(join(DATA, "runs"), (): number => Number(runState.snapshot(roster).gameMinutes) || 0, { resumeOpenRun: runState.snapshot(roster).status !== "stopped" });
 const tapeLoc = (id: string): TapeLoc | undefined => {
@@ -309,7 +309,7 @@ const tapeLoc = (id: string): TapeLoc | undefined => {
   };
 };
 
-// ---- usage / token-meter aggregation (operator visibility into fleet burn; API-equiv, notional on a subscription) ----
+// ---- usage / token-meter aggregation (operator visibility into fleet burn; API-equiv, notional with a Claude login) ----
 type Usage = { ticks: number; apiEquivUsd: number; tokensIn: number; tokensOut: number; cacheWrite: number; cacheRead: number; lastTickAt: number | null };
 const zeroUsage = (): Usage => ({ ticks: 0, apiEquivUsd: 0, tokensIn: 0, tokensOut: 0, cacheWrite: 0, cacheRead: 0, lastTickAt: null });
 const perAgentUsage = new Map<string, Usage>();
@@ -341,7 +341,7 @@ app.get("/meta", (_q, r) =>
   r.json({ agents: agents.map((a) => a.id), buildings: world.buildings.map((b: any) => b.id) }),
 );
 
-// W2b: the town map-as-tree rendered to NL (the keystone), for the GUI / inspector / debugging.
+// The town map-as-tree rendered to NL (the keystone), for the GUI / inspector / debugging.
 app.get("/world-tree", (_q, r) =>
   r.json({ town: tree.townToNL(), areas: (world.areas ?? []).map((a: any) => a.id), buildings: tree.buildings().map((b) => b.id) }),
 );
@@ -479,7 +479,7 @@ app.post("/event", (req, r) => {
   // task #13: GATE say() on ADJACENCY — an agent can only talk to someone standing right beside it. Without
   // this, talk(toId) emitted a say EVENT to ANY id (even a far/disabled agent) and it rendered on the feed
   // ("barista → courier" while courier was across the map + disabled). Cheb≤1 via byId (every agent, incl.
-  // disabled, has a live position) — mirrors the S1-3 give-gate. The W2b walk-up-and-talk records via POST
+  // disabled, has a live position) — mirrors the S1-3 give-gate. The walk-up-and-talk path records via POST
   // /dialogue (a DIFFERENT handler), so this does NOT touch it.
   if (kind === "say") {
     const speaker = byId.get(String(actor));
@@ -497,7 +497,7 @@ app.post("/event", (req, r) => {
   return r.json({ ok: true });
 });
 
-// W2b: citizen-side dialogue records its CLOSED conversation here (D6 — the conversation already ran in the
+// Citizen-side dialogue records its CLOSED conversation here (the conversation already ran in the
 // initiator's process; the sim NEVER calls an LLM). The sim is the single writer of dialogue.jsonl + broadcasts
 // it for the feed/inspector. No turn-gate (the conversation is atomic citizen-side). Best-effort append.
 app.post("/dialogue", (req, r) => {
@@ -549,7 +549,7 @@ app.get("/perceive", async (req, r) => {
   const hereB = hereId ? world.buildings.find((b: any) => b.id === hereId) : null;
   const currentShop = hereB && hereB.type === "shop" ? { id: hereB.id, label: hereB.label, goods: hereB.goods ?? [] } : null;
   const bal = await cachedBal(a.address);
-  // W2b: assemble the rich perception (interior NL, seen-subgraph, the observation for mind.observe()).
+  // Assemble the rich perception (interior NL, seen-subgraph, the observation for mind.observe()).
   // PINNED: the five fields below stay exactly as they were; perception only ADDS keys.
   const inside = interiors.whereInside(a.id); // B1 interior presence: {buildingId, ...} | undefined
   const percept = assemblePerception(tree, seenFor(a.id), {
@@ -567,7 +567,7 @@ app.get("/perceive", async (req, r) => {
     buildings: nearB,
     currentShop,
     adjacentTo: a.adjacentTo,
-    // ADDITIVE (W2b-perception) — the world→memory bridge:
+    // ADDITIVE — the world→memory bridge:
     here: percept.here,
     area: percept.area,
     seen: percept.seen,
@@ -577,13 +577,13 @@ app.get("/perceive", async (req, r) => {
     // T0-weave S1: THE DROPPED WIRE — assemblePerception has built insideHere (occupancy + enriched spots)
     // since B4/B7, but this route never spread it; the whole interior-awareness menu was dead in live runs.
     ...(percept.insideHere ? { insideHere: percept.insideHere } : {}),
-    // ADDITIVE (W2b-relations) — recent ties for the partner/seller to ingest into its OWN graph (dedup by id):
+    // ADDITIVE — recent ties for the partner/seller to ingest into its OWN graph (dedup by id):
     recentDialogues: dialogueLog.filter((d) => Array.isArray(d.participants) && (d.participants as string[]).includes(a.id)).slice(-5),
     recentTrades: tradeLog.filter((t) => t.buyer === a.id || t.seller === a.id).slice(-5),
     // #18: inbound one-way says DIRECTED AT this agent — a DEDICATED ear so they aren't drowned in the
     // listener's own activity. The citizen renders these as a high-salience "reply to this" prompt block.
     heardRecently: sayLog.filter((s) => s.to === a.id).slice(-3),
-    // interior earshot (interiorist): conversations you OVERHEARD nearby + presence-deltas you sensed in your space
+    // interior earshot: conversations you OVERHEARD nearby + presence-deltas you sensed in your space
     overheard: overheardLog.filter((o) => o.listener === a.id).slice(-4),
     nearbyEvents: nearbyEventsLog.filter((e) => e.listener === a.id).slice(-4),
   });

@@ -23,7 +23,7 @@ import { loadCitizens } from "../lib.js";
 //   tail   — `tail -f sim/data/agents/<id>.log` per window. Pure OBSERVER of a fleet started elsewhere
 //            (e.g. `npm run citizens`). Spawns NOTHING — zero token risk, respects the single-writer lock.
 //   spawn  — each window runs `tsx citizens/citizen.ts <id>` directly: the LITERAL live process, jump-in-able.
-//            INCIDENT DISCIPLINE (INC-2026-06-18): spawn mode is gated — it refuses unless either MAX_TICKS
+//            SAFETY DISCIPLINE: spawn mode is gated — it refuses unless either MAX_TICKS
 //            is set (a hard stop) or OBSERVE_SPAWN_OK=1 is exported (you accept the governor is the only bound).
 //            The sim governor still applies (citizens idle-poll at 0 tokens until the GUI/control says running).
 //
@@ -60,12 +60,12 @@ if (ids.length === 0) {
   process.exit(1);
 }
 
-// ── incident gate for spawn mode ────────────────────────────────────────────────────────────────────────
+// ── safety gate for spawn mode ────────────────────────────────────────────────────────────────────────────
 const MAX_TICKS = process.env.MAX_TICKS;
 if (mode === "spawn" && !MAX_TICKS && process.env.OBSERVE_SPAWN_OK !== "1") {
   console.error(
     [
-      "[observe] REFUSING to spawn an UNBOUNDED fleet (INC-2026-06-18 token-drain hazard).",
+      "[observe] REFUSING to spawn an UNBOUNDED fleet (runaway token-spend hazard).",
       "  Spawn mode runs the real citizen processes. Bound it, or opt in explicitly:",
       "    MAX_TICKS=2 npm run observe -- spawn      # each citizen runs 2 ticks then exits cleanly",
       "    OBSERVE_SPAWN_OK=1 npm run observe -- spawn  # I accept the sim governor is the only bound",

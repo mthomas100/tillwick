@@ -4,8 +4,8 @@ The Phaser engine (`../town-scene.js`) is **art-agnostic**. It asks the active a
 textures by semantic role; it never references a specific art set. Pick a pack at runtime with `?art=`:
 
 - `?art=placeholder` (default) — textures generated at runtime from Phaser Graphics. **Zero external art**, in repo.
-- `?art=limezu` — loads from `limezu/` (operator-bought **LimeZu Modern Interiors/Exteriors**). Raw LimeZu art is
-  **proprietary → kept OUT of the repo**; the operator drops it in locally. Authored by **W3-map / W3-sprites**.
+- `?art=limezu` — loads from `limezu/` (separately purchased **LimeZu Modern Interiors/Exteriors**). Raw LimeZu art is
+  **proprietary → kept OUT of the repo**; you drop your own copy in locally.
 - `?art=ninja` — loads from `ninja/`: a slot for an open (e.g. CC0) tileset. None is bundled, so it currently degrades to the placeholder art.
 
 Expected layout for a folder pack (see `makeFolderPack` in `../assets.js`):
@@ -21,7 +21,7 @@ half-installed pack still renders. The engine needs **no change** when art is ad
 
 ## LimeZu building crops (gitignored — regenerate from `_limezu-src/`)
 
-The `limezu/` folder is gitignored (proprietary art). The building facades are CROPS of the operator-bought
+The `limezu/` folder is gitignored (proprietary art). The building facades are CROPS of the separately purchased
 LimeZu Modern Exteriors source under `_limezu-src/` (also gitignored). The pack maps building → facade by
 **id first** (its own crop), falling back by **type** (`shop`/`shop2`/`home`/`civic`) — see `CIVIC_BY_ID` +
 `SHOP_BY_ID` + `buildingImageFor` in `../assets.js`. Two reasons for the per-id crops:
@@ -50,14 +50,14 @@ Market_Medium_11 -> limezu/buildings/smithy.png    (tan, glass front    → Harv
 If any per-id crop is absent, that building falls back by type (shop→shop/shop2, civic→civic.png), and if THAT
 is absent, to the generated placeholder — so a fresh checkout without the crops still renders (just less pretty).
 
-## LimeZu INTERIOR crops (B3 — gitignored; regenerate with `scripts/crop-interiors.sh`)
+## LimeZu INTERIOR crops (gitignored; regenerate with `scripts/crop-interiors.sh`)
 
 `limezu/interiors/{floors,walls,objects}/*.png` are the FURNITURE / floor / wall pieces for the interior
-scene (B2). They're CROPS of the operator-bought LimeZu Modern Interiors under `_limezu-src/1_Interiors/48x48/`
+scene. They're CROPS of the separately purchased LimeZu Modern Interiors under `_limezu-src/1_Interiors/48x48/`
 (also gitignored). The pack (`../assets.js` `limezuPack`) requests a piece by SEMANTIC NAME via three getters
 — `interiorFloor(scene,kind)`, `interiorWall(scene,variant)`, `interiorObject(scene,name)` — each with the same
 per-key degrade as the exterior pack (a missing crop → a generated flat tile for floors/walls, or `null` for
-objects so the scene draws a placeholder rect). Names align to B1's `interior.theme` + `sublocation.kind` enums
+objects so the scene draws a placeholder rect). Names align to world.json's `interior.theme` + `sublocation.kind` enums
 (see `sim/interiors.ts`); the full available-name list + alias table live in `assets.js`.
 
 **To regenerate on a fresh checkout: `bash scripts/crop-interiors.sh`** (from the repo root, needs ImageMagick).

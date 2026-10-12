@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { RelationshipGraph, parseSentiment, tier, clipWords, type InteractionSignal } from "./relationships.js";
 import { stubComplete } from "./llm.js";
 
-// ZERO-TOKEN validation driver for cognition/relationships.ts (W2-relations). Synthetic interactions only;
+// ZERO-TOKEN validation driver for cognition/relationships.ts. Synthetic interactions only;
 // the LLM seam is stubComplete → no model call, no SDK, no fleet. Run: `npx tsx cognition/relationships.driver.ts`.
 //
 // Asserts: the graph FORMS from interactions; familiarity GROWS with repeated contact; trade/dialogue/co-
@@ -160,8 +160,8 @@ try {
   const g4 = new RelationshipGraph(ego, { dir, nowGameMin: now });
   ok(g4.relationWith("smith")!.trust === 0.9, "sentiment/trust persist across a restart");
 
-  // ---- 5b. adapter: ingest conversationalist's DialogueSummary verbatim --------------------------------
-  console.log("\n[5b] DialogueSummary adapter (conversationalist's record, verbatim)");
+  // ---- 5b. adapter: ingest the dialogue driver's DialogueSummary verbatim --------------------------------
+  console.log("\n[5b] DialogueSummary adapter (the dialogue driver's record, verbatim)");
   {
     const adir = mkdtempSync(join(tmpdir(), "rel-adapter-"));
     const cook = new RelationshipGraph("cook", { dir: adir, nowGameMin: now });
@@ -213,7 +213,7 @@ try {
   ok(bakerReload.relationWith("barista")!.dialogues === g.relationWith("barista")!.dialogues, "baker's graph untouched by barista's writes");
 
   // ---- 7. S0-2 ACCEPTANCE: the 0-edges bug is fixed (trade→both edges; complete topics; co-presence) -----
-  // Reproduces the exact runtime failure (ARCHITECTURE-RESEARCH §A.6 / OBSERVABILITY §5 #4): 0/1,231 trades
+  // Reproduces the exact runtime failure seen in an early long run: 0/1,231 trades
   // reached the graph, topics truncated mid-word ("…barista said"), coPresences:0 everywhere. Each agent owns
   // its OWN graph (single writer per file), so we model buyer + seller as two independent graphs — exactly how
   // the citizen loop's trade-tap (citizen.ts:180-189) folds one `purchase` into each party's graph on its tick.
@@ -284,7 +284,7 @@ try {
     ok(!/[\s.,;:!?-]…$/.test(clipped), "clipWords strips trailing punctuation before the ellipsis");
   }
 
-  // ---- 7c. OPINION NOTE (town-alive B2): parse, set, describe, persist ----------------------------------
+  // ---- 7c. OPINION NOTE: parse, set, describe, persist ----------------------------------
   console.log("\n[7c] opinion notes (like/dislike with a why)");
   {
     const { parseOpinion } = await import("./relationships.js");

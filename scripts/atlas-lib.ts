@@ -220,9 +220,9 @@ export function floorplanAscii(
   return { lines: grid.map((r) => r.join("")), legend };
 }
 
-// ---- AFFORDANCES (operator addendum, ledger D28/D32): what can an agent DO at this object? ---------------
-// The SHARED VERB VOCABULARY v0 — proposed by flightrecorder, to be confirmed/extended by lifegiver (prompt
-// menus) + socialweaver (commerce/social) so the atlas, the tape's menu/choice beats, and the ACT prompt all
+// ---- AFFORDANCES: what can an agent DO at this object? ---------------
+// The SHARED VERB VOCABULARY v0 — shared by the prompt menus
+// and the commerce/social layer so the atlas, the tape's menu/choice beats, and the ACT prompt all
 // use ONE naming. Each affordance: verb + who may take it + eligibility condition (the "cond" is prose-level
 // ground truth; the sim/citizens enforce their own gates — this documents what SHOULD be offered).
 export type Affordance = { verb: string; who: "staff" | "visitor" | "resident" | "anyone"; cond?: string };
@@ -238,7 +238,7 @@ export const AFFORDANCE_VOCAB: Record<string, string> = {
   study: "study/read at a desk",
   busk: "perform for tips on a stage",
   rest: "sleep/rest in a bed",
-  // v0.1 — lifegiver/socialweaver's addition (citizens/affordances.ts AtlasVerb), accepted: the
+  // v0.1 — an addition from citizens/affordances.ts (AtlasVerb): the
   // own→consume→rebuy demand loop needs its own verb. NOT spot-bound — it rides held inventory
   // (a table/seat is where it happens, but eligibility is "holds the item", not the furniture).
   consume: "consume a held good (eat/drink/use — the demand loop's recurring need)",
@@ -326,7 +326,7 @@ export function computeSmells(b: AtlasBuilding): Smell[] {
         out.push({ code: "seat-out-of-bounds", severity: "high", msg: `a seat of ${s.id} at (${seat.x},${seat.y}) is outside the grid` });
       }
     }
-    // dead furniture: a spot that affords NO action (operator addendum — an empty option set is the
+    // dead furniture: a spot that affords NO action (an empty option set is the
     // stuck precursor; flag it here so the vocabulary gap is closed deliberately, not discovered live)
     if (affordancesOf(s, b).length === 0) {
       out.push({ code: "no-affordances", severity: "med", msg: `${s.id} (kind ${s.kind}${s.station ? "" : ", no station"}) affords NO action — dead furniture until a verb is agreed (use/play/warm?)` });

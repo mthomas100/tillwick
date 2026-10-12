@@ -9,7 +9,7 @@
 //       H4 logic), the agent's SEEN view vs. ground truth, nearby agents/objects, and a single
 //       `observationText` — exactly what should flow into mind.observe() this tick.
 //
-// SEAM-INJECTED on purpose (the lead wires it into sim-server.ts): it imports ONLY world-tree.ts (types +
+// SEAM-INJECTED on purpose (sim-server.ts wires it in): it imports ONLY world-tree.ts (types +
 // WorldTree/SeenSubgraph). It takes the sim's already-computed geometry as plain input — it does NOT import
 // sim-server.ts or any citizen module, does NOT re-derive Chebyshev/tile math (the sim owns that), and never
 // calls an LLM or touches disk. That makes it unit-testable with a hand-built tree and trivially callable from
@@ -68,7 +68,7 @@ export type HereView = {
 };
 export type NearbyObject = { path: string; label: string; state: string | null; where: string };
 // B1: the INTERIOR the agent is standing in (its local grid + sub-locations to render + who's in it & where).
-// This is what scenewright's B2 interior scene + the occupancy badge read. Additive — present only when the
+// This is what the interior scene + the occupancy badge read. Additive — present only when the
 // agent is inside a modelled interior (else undefined; perception is unchanged).
 export type InsideHere = {
   buildingId: string;
@@ -76,7 +76,7 @@ export type InsideHere = {
   sublocations: Sublocation[];
   occupants: Occupant[];     // everyone inside (incl. self) with their interior coords + sub-location
   // B7: per-spot ENRICHED view (occupancy/empty-vs-occupied/purchasable/conversation) — ADDITIVE, never replaces
-  // `sublocations`/`occupants` (scenewright's B2 scene consumes those raw). interiorist's enrichSpots() computes it.
+  // `sublocations`/`occupants` (the interior scene consumes those raw). enrichSpots() (cognition/interior-awareness.ts) computes it.
   spots?: EnrichedSpot[];
 };
 export type AssembledPerception = {

@@ -10,7 +10,7 @@ export type Receipt = { status: number; txHash: string; receipt: unknown };
 
 const SIM = process.env.SIM_URL ?? "http://localhost:4042";
 
-// ---- D32 ECONOMY-CHAIN BEATS (flightrecorder schema): every stage of a buy is a tape beat, failures loud.
+// ---- ECONOMY-CHAIN BEATS (flight-tape schema): every stage of a buy is a tape beat, failures loud.
 // Kinds: buy-attempt → buy-402 {amount?} → buy-settled {txHash} | buy-failed {reason}. Emitted from HERE
 // (the one place every fleet buy passes through) as plain fire-and-forget POST /event — the tape auto-
 // locates + tid-stamps them. wrapFetchWithPayment hides the wire-level 402 round-trip, so the 402 stage is
@@ -54,7 +54,7 @@ async function pay(privateKey: `0x${string}`, url: string): Promise<Receipt> {
 }
 
 /** Phase 3: a citizen buys a good from a shop, paying from its OWN funded wallet (citizens.local.json).
- *  `opts` (additive, optional — existing callers unchanged): tick/price thread into the D32 beats;
+ *  `opts` (additive, optional — existing callers unchanged): tick/price thread into the beats;
  *  `emitBeat` injects a sink for zero-token tests. */
 export async function payForItem(
   citizenId: string,
@@ -100,7 +100,7 @@ export async function payForItemEnv(goodId: string): Promise<Receipt> {
 // ---- runnable self-test (ZERO tokens, ZERO settlements) --------------------------------------------------
 // `tsx buy.ts` exercises ONLY the beat plumbing + failure classification — no chain writes: a buy against a
 // dead port must emit buy-attempt then buy-failed{seller-absent} and rethrow; the classifier maps the loud
-// reasons. (The settle path needs a live shop + funded wallet — that's the lead's gated run, where
+// reasons. (The settle path needs a live shop + funded wallet — that's a bounded live run, where
 // buy-402/buy-settled land on the tape alongside the existing `purchase` event.)
 if (import.meta.url === `file://${process.argv[1]}`) {
   void (async () => {

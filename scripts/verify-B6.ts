@@ -1,14 +1,14 @@
 // scripts/verify-B6.ts — bounded live runtime-verify of the B6 fix: NON-PRODUCERS now live their role-locations
 // (musician busks at the pub, student studies at the college, courier does delivery rounds) instead of lingering
-// at the cafe all day. FOR THE LEAD to run (D11: a teammate never runs a fleet during build).
+// at the cafe all day. Spends tokens on a bounded live fleet: run it deliberately.
 //
-// The showcase gap (lead's harsh-critic finding): producers nailed it, but the musician never reached the pub
+// The showcase gap: producers nailed it, but the musician never reached the pub
 // stage, the student never went to college, the courier didn't do rounds — all sat at the cafe. Root cause
 // (forensic): the reply/coffee branch out-prioritized "advance your plan" at the social hub, so non-producers
 // never emitted move({to:workId}). Fix: a WORK-WINDOW override (off-site-during-shift → go to work, above
 // chit-chat) + inferStepTarget reorder/label-match. This harness proves they now SHOW UP to work.
 //
-// It boots a FRESH sim (D20), enables the 3 non-producers (+ a couple producers as conversation partners so the
+// It boots a FRESH sim, enables the 3 non-producers (+ a couple producers as conversation partners so the
 // override has something to out-prioritize), runs bounded, then reads positions + status events:
 //   • musician reaches the PUB (its workId) during its 16:00-23:00 window
 //   • student reaches the COLLEGE during its 09:00-17:00 window
@@ -65,7 +65,7 @@ async function cleanup() {
 
 async function main() {
   await killStale();
-  console.log("⏳ booting a FRESH sim (D20)…");
+  console.log("⏳ booting a FRESH sim…");
   const sim = spawn("npx", ["tsx", "sim/sim-server.ts"], { cwd: ROOT, stdio: "ignore", env: { ...process.env } });
   childProcs.push(sim);
   for (let i = 0; i < 40 && !(await get("/meta")); i++) await sleep(500);

@@ -8,7 +8,7 @@ import { workWindowFor } from "./building-map.js";
 // home → sleep. This is the deterministic skeleton of a believable day; the LLM layer reacts/replans ON TOP
 // of it (paper §4.3.1) but can no longer fail to produce a day at all.
 //
-// WHY DATA, NOT LLM (audit A4/A5, 2026-07-18): at 4-8 acted ticks per agent per game-day, a generated plan
+// WHY DATA, NOT LLM: at 4-8 acted ticks per agent per game-day, a generated plan
 // that names a wrong/vague place burns a whole day; and every planDay/decompose call is a fresh CLI spawn
 // (10-35s wall) the tick budget can't afford. The template costs ZERO tokens, is always well-formed, always
 // names real building ids + real station ids, and honors each persona's prose routine. `agendaLines()`

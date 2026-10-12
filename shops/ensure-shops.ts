@@ -1,4 +1,4 @@
-// ensure-shops — IDEMPOTENT x402 seller bring-up (town-alive audit A2 blocker 3): a fleet run spawned by
+// ensure-shops — IDEMPOTENT x402 seller bring-up : a fleet run spawned by
 // the GUI Start button had NO shops listening (spawn-fleet.ts spawns citizens only; `npm run shops` was a
 // separate manual step) — so even a willing, funded buyer's `buy` would have died on ECONNREFUSED :4031-35.
 //
@@ -8,7 +8,7 @@
 // the double-spawn guard, unlike pgrep this also respects a shop run by hand in a terminal). Never throws;
 // returns what it found/started so the caller can log it.
 //
-// Wiring (hook-spec to main): spawn-fleet.ts calls `await ensureShops()` right before spawning citizens.
+// Wiring: spawn-fleet.ts calls `await ensureShops()` right before spawning citizens.
 // Also runnable standalone: `npx tsx shops/ensure-shops.ts`.
 
 import { spawn } from "node:child_process";

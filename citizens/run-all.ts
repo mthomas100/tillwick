@@ -55,7 +55,7 @@ function launch(id: string, delayMs: number): void {
     out.write(`\n=== ${id} started ${new Date().toISOString()} ===\n`);
     const child = spawn("tsx", ["citizens/citizen.ts", id], {
       cwd: ROOT,
-      env: { ...process.env }, // inherits the auth env (ANTHROPIC_API_KEY, or the subscription opt-in)
+      env: { ...process.env }, // inherits the auth env (ANTHROPIC_API_KEY, or the Claude-login opt-in)
     });
     child.stdout.on("data", (d) => {
       out.write(d);
@@ -78,7 +78,7 @@ function launch(id: string, delayMs: number): void {
         out.write(`\n[run-all] ${id} killed by ${signal} — not respawning.\n`);
         return;
       }
-      // Unexpected crash ⇒ respawn with BACKOFF + a hard cap (the incident's "auto-restart amplifies" guard).
+      // Unexpected crash ⇒ respawn with BACKOFF + a hard cap (an "auto-restart amplifies" guard).
       respawns[id] = (respawns[id] ?? 0) + 1;
       if (respawns[id] > MAX_RESPAWNS) {
         const m = `[run-all] ${id} crashed ${respawns[id]}× — giving up (exceeds MAX_RESPAWNS=${MAX_RESPAWNS}).`;

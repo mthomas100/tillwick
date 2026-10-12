@@ -1,12 +1,12 @@
 // scripts/verify-task-13.ts — GATED zero-token e2e for the talk()-adjacency gate (task #13). NO LLM — it
-// drives the sim's HTTP API directly (POST /event, /act). It boots a sim on :4042, so it is GATED on the
-// team's single slot (coordinate through the lead — a demo may be live).
+// drives the sim's HTTP API directly (POST /event, /act). It boots a sim on :4042, so it needs
+// :4042 free (a demo may be live).
 //
 // PROVES the bug is fixed AT THE AUTHORITATIVE SERVER GATE (POST /event, the single writer + feed broadcaster
 // — NOT just /act, since the visible "X → Y" feed entry comes from /event):
 //   (1) reproduce the exact bug: a FAR / disabled target `say` is REJECTED and no `say` event lands on the feed;
 //   (2) an ADJACENT `say` is ACCEPTED and recorded (legit talk + feed still work);
-//   (3) the W2b /dialogue path is UNAFFECTED (not gated).
+//   (3) the /dialogue path is UNAFFECTED (not gated).
 // Bulletproof cleanup (verify-2c model).
 import { spawn, type ChildProcess } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
@@ -18,7 +18,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = dirname(HERE); // repo root
 const SIM = "http://localhost:4042";
 const EVENTS = join(ROOT, "sim", "data", "events.jsonl");
-const A = "barista"; // the speaker (the operator's exact case)
+const A = "barista"; // the speaker (the reported case)
 const B = "courier"; // the FAR / disabled target
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -56,9 +56,9 @@ async function main() {
   ws = new WebSocket("ws://localhost:4042");
   await new Promise<void>((res) => { ws!.on("open", () => res()); ws!.on("error", () => res()); setTimeout(res, 3000); });
   await post("/control", { action: "start", duration: { kind: "minutes", value: 2 } });
-  // Reproduce the operator's exact scenario: disable B (courier), like the demo run.
+  // Reproduce the reported scenario: disable B (courier), like the demo run.
   await post("/control", { action: "set-agent", id: B, enabled: false });
-  ok(`sim up; ${B} disabled (the operator's case)`);
+  ok(`sim up; ${B} disabled (the reported case)`);
 
   // ── (1) THE BUG: A (barista) far from B (courier, disabled) → say must be REJECTED + NOT on the feed. ──
   console.log("\n== (1) cross-map say is rejected at the single writer (/event) ==");
@@ -88,12 +88,12 @@ async function main() {
   r2 && r2.ok !== false ? ok(`/event say ${C}→${D} ACCEPTED (adjacent)`) : fail(`/event say ${C}→${D} was wrongly rejected — ${JSON.stringify(r2)} (the gate is too strict; it broke legit talk!)`);
   sayEvents().length === saysBefore2 + 1 ? ok("the adjacent say WAS recorded (feed still works) ✓") : fail("the adjacent say was not recorded — the gate broke legit talk");
 
-  // ── (3) W2b /dialogue is unaffected (not gated). ──
-  console.log("\n== (3) W2b /dialogue path is untouched ==");
+  // ── (3) /dialogue is unaffected (not gated). ──
+  console.log("\n== (3) /dialogue path is untouched ==");
   const r3 = await post("/dialogue", { op: "record", summary: { id: "t13-probe", participants: [C, D], topic: "bread", turns: 2, outcome: "conversed" } });
-  r3 && r3.ok ? ok("/dialogue record still accepted (W2b walk-up-and-talk untouched) ✓") : fail(`/dialogue was affected — ${JSON.stringify(r3)} (must NOT touch the W2b path!)`);
+  r3 && r3.ok ? ok("/dialogue record still accepted (walk-up-and-talk untouched) ✓") : fail(`/dialogue was affected — ${JSON.stringify(r3)} (must NOT touch the /dialogue path!)`);
 
-  console.log(`\n${pass ? "✅ TASK-13 PASS" : "❌ TASK-13 FAIL"} — talk() ${pass ? "is grounded in proximity: cross-map say rejected at /event (off the feed); adjacent say works; W2b untouched." : "NOT fully fixed (see ✗ above)."}`);
+  console.log(`\n${pass ? "✅ TASK-13 PASS" : "❌ TASK-13 FAIL"} — talk() ${pass ? "is grounded in proximity: cross-map say rejected at /event (off the feed); adjacent say works; /dialogue untouched." : "NOT fully fixed (see ✗ above)."}`);
 }
 
 main()

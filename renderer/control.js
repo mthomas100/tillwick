@@ -1,4 +1,4 @@
-// W0 Operator Control Plane — self-contained overlay panel.
+// Operator Control Plane — self-contained overlay panel.
 //
 // Provides: run controls (start/pause/resume/stop), mandatory duration opt-in,
 // per-agent enable/model toggles, live token meter, and run-state display.
@@ -160,7 +160,7 @@
     </div>
     <div id="ctrl-meter-area">
       <div class="ctrl-meter-label">
-        <em>API list-price cost (billed with an API key; notional on a subscription)</em>
+        <em>API list-price cost (billed with an API key; notional with a Claude login)</em>
       </div>
       <div class="ctrl-meter-top">
         <span id="ctrl-fleet-usd">$0.0000</span>

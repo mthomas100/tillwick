@@ -14,7 +14,7 @@ import { loadCitizens } from "../lib.js";
 //                                                       where the per-tick trace + SDK sessions live).
 // This is the host-side half of the GUI "open this agent's logs/trace" button (sim POST /observe spawns this).
 // The sim is a Node process ON the host Mac, so it can drive iTerm via osascript; this script encapsulates that
-// so the lead-hot sim-server.ts change is a trivial spawn.
+// so the sim-server.ts change is a trivial spawn.
 //
 // WHY inspect (not trace) on the RIGHT: `trace` needs a specific TICK number the popup button doesn't have;
 // `inspect -- <id>` needs only the id and shows the whole mind + a pointer to the trace. It's the right default

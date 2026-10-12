@@ -22,7 +22,7 @@ in the in-browser ⚙ control panel **or** by running the `scripts/live-demo.ts`
 - `.env` holds testnet keys (gitignored, throwaway). The **funded citizen wallets** in
   `citizens.local.json` matter: see Gotchas.
 - Auth: `ANTHROPIC_API_KEY` in `.env` (the default). Opt-in for personal local experiments only: a
-  logged-in Claude subscription via `TILLWICK_USE_CLAUDE_LOGIN=1` or `CLAUDE_CODE_OAUTH_TOKEN`.
+  local Claude login via `TILLWICK_USE_CLAUDE_LOGIN=1` or `CLAUDE_CODE_OAUTH_TOKEN`.
 - Optional: `jq` (used below), `ffmpeg` (music-asset pipeline).
 
 ## Run — agent path (use this)
@@ -74,10 +74,10 @@ inspect, the 🎵 button cycles chiptune tracks.
 model calls and no citizens spawned; `npm run replay-server -- --tape sim/data/runs/<runId>` plays any run
 the live sim recorded. Flags: `--speed 8`, `--from HH:MM`, `--loop`, `--port 4042`.
 
-## Gotchas (all hit in real sessions)
+## Gotchas
 - **`tsx` does NOT hot-reload.** After editing any `sim/*` file, the running sim serves STALE code until
   you restart it (`npm run sim`). Restart and `curl` the new field to confirm it's live BEFORE trusting a
-  run: a stale sim once looked exactly like "the fix failed" (the process predated the edit by 36 min).
+  run: a stale sim looks exactly like "the fix failed".
 - **cwd matters.** Run scripts from the repo root (`npx tsx scripts/live-demo.ts`); from anywhere else
   you get `ERR_MODULE_NOT_FOUND`.
 - **Cold start is slow.** Each citizen's FIRST tick is 24–93 s (summary + plan + retrieval before it
@@ -90,9 +90,8 @@ the live sim recorded. Flags: `--speed 8`, `--from HH:MM`, `--loop`, `--port 404
 - **NEVER `npm run gen-citizens` / `gen-wallets` on a funded town.** They regenerate the funded citizen
   wallets, which is irreversible (the old wallets' USDC is stranded). A plain sim restart is safe (it
   reloads data and never regenerates wallets).
-- **Bounded only.** Always a duration cap + the $5 fleet ceiling + the pause-on-no-viewer governor (these
-  closed the [token-drain incident](../../../docs/design/incident-2026-06-18-token-drain.md)). Never an
-  unbounded fleet.
+- **Bounded only.** Always a duration cap + the $5 fleet ceiling + the pause-on-no-viewer governor (see
+  [architecture.md §1](../../../docs/design/architecture.md)). Never an unbounded fleet.
 - **Automation/headless Chrome can't decode `<audio>`** (readyState stalls): verify the 🎵 music in a
   real browser, not automation.
 
@@ -111,11 +110,6 @@ the live sim recorded. Flags: `--speed 8`, `--from HH:MM`, `--loop`, `--port 404
 `scripts/live-demo.ts` (bounded CLI launcher) + `scripts/spawn-fleet.ts` (the supervisor the GUI Start
 fires). The sim's `/control start` handler (`sim/sim-server.ts`) spawns `spawn-fleet.ts` detached and
 fire-and-forget (like `POST /observe`); a failed spawn never crashes the sim.
-
-Verified in a real session: booted via `npm run sim`; spawned the fleet both via `scripts/live-demo.ts`
-and via a real GUI **Start** click; watched 12 ticks / $1.35 notional with agents moving, producing and
-conversing (`student → barista: "could you extend credit…"`); all `curl` commands above ran green
-against the live :4042.
 
 ## See also
 - [observe-citizens](../observe-citizens/SKILL.md): inspect minds, trace decisions, open per-citizen windows.

@@ -52,7 +52,7 @@ export type World = {
   width: number; height: number; tile: number;
   street: { rows: number[] };
   sidewalks: { rows: number[] };
-  lanes?: { cols?: LaneCol[]; _note?: string }; // additive 2D enrichment (W2-move hook); sim ignores today
+  lanes?: { cols?: LaneCol[]; _note?: string }; // additive 2D enrichment (2D-lane hook); sim ignores today
   areas?: Area[];
   buildings: Building[];
   spawns: Record<string, { x: number; y: number }>;
@@ -255,8 +255,8 @@ export class WorldTree {
   // one-corridor map, but for a multi-corridor town it mis-picks the inside tile of buildings on the far side
   // (their door+inside become non-adjacent → A* can't enter them). `doorInsideTile` below is corridor-count-
   // AGNOSTIC: it returns the in-building tile orthogonally adjacent to the door. This is the proposed
-  // sim-server HOOK (see the module's HOOKS SPEC). It is exported so the validation driver checks the world
-  // against the CORRECT logic, and so W2-move can adopt it verbatim.
+  // sim-server HOOK. It is exported so the validation driver checks the world
+  // against the CORRECT logic, and so lane-based movement can adopt it verbatim.
   // ============================================================================
   doorInsideTile(b: Pick<Building, "x" | "y" | "w" | "h" | "door">): [number, number] {
     const { x, y, w, h, door } = b;

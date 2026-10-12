@@ -2,29 +2,25 @@
 
 Tillwick is a believable generative-agent town (after Park et al., *Generative Agents: Interactive
 Simulacra of Human Behavior*, UIST '23) **fused with an x402 economy**: citizens pay each other's shops
-in testnet USDC on Base Sepolia. An **experiment harness** sits on top, and the whole thing is built so
-that the token-budget drain described in
-[incident-2026-06-18-token-drain.md](incident-2026-06-18-token-drain.md) **cannot repeat by construction**.
+in testnet USDC on Base Sepolia. The whole thing is built so that a runaway, unattended fleet of
+citizens **cannot happen by construction** (see §1).
 
 Companion docs: [economy.md](economy.md) (the x402 layer: wallets, shops, the buy primitive, custody,
-funding), [experiments.md](experiments.md) (the scenario backlog), [observability.md](observability.md)
-(how to watch and explain the citizens), and the incident post-mortem linked above.
+funding) and [observability.md](observability.md) (how to watch and explain the citizens).
 
 ## North star
 A town that **trades**: agents live believable lives (memory, reflection, planning), walk a
 town modelled on the paper's Smallville, **see each other and stop to talk**, gossip, form relationships, visit homes, and
-**need things, get them, and change hands of goods for real testnet USDC over x402.** The four scenarios
-in [experiments.md](experiments.md) are **seedable config on this substrate, not rewrites.** First
-scenario to drive end to end: **#2 Festival with a supply chain.**
+**need things, get them, and change hands of goods for real testnet USDC over x402.**
 
 ## Design decisions (fixed 2026-06-18)
 | Axis | Decision |
 |---|---|
-| Win condition | Believable substrate + harness + cute art + one emergent on-chain event; light eval |
+| Win condition | Believable substrate + cute art + one emergent on-chain event; light eval |
 | Scale | Target **25 agents** from a data-driven roster (the current roster runs 8); default model **Haiku** (`claude-haiku-4-5`) |
 | Per-agent config | **enable/disable** + **model** per agent, as config; no hardcoded counts |
-| Fleet auth | **`ANTHROPIC_API_KEY` by default**; a logged-in Claude subscription only as an opt-in for personal local experiments (how it was developed); per-agent models (Haiku default, promotable protagonists) |
-| Safety (the incident fix) | pause-on-no-viewer · resume-with-memory-intact · mandatory duration opt-in · backoff + circuit breaker · shared fleet budget ceiling · kill switch · **live token meter** · cache reuse |
+| Fleet auth | **`ANTHROPIC_API_KEY` by default**; a local Claude login only as an explicit opt-in (see [economy.md](economy.md) §9); per-agent models (Haiku default, promotable protagonists) |
+| Safety | pause-on-no-viewer · resume-with-memory-intact · mandatory duration opt-in · backoff + circuit breaker · shared fleet budget ceiling · kill switch · **live token meter** · cache reuse |
 | Renderer/art | **Phaser 3 + Tiled**, **LimeZu** tiles + characters (a small commercial pack, not redistributed), art swappable, DOM overlays on top |
 | World/cast | Adapt the places of **the paper's Smallville** (Hobbs Cafe, Willows Market & Pharmacy, **Harvey Oak Supply Store** as the goods producer, Oak Hill College + dorm, Johnson Park, Rose & Crown, family houses), with economic roles for the cast |
 | Embeddings | **Local on-box model** (zero token cost) for retrieval relevance |
@@ -42,13 +38,12 @@ cap); the single-instance supervisor lock. Details in [economy.md](economy.md).
 
 **Added on top:** a safe agent runtime the cognition plugs into; the generative-agent cognitive core; a
 richer world with perception, turn-taking dialogue and relationships; shop **stock** and a **producer**;
-a Phaser/Tiled/LimeZu renderer; an experiment harness; durable resumable state; a GUI control plane.
+a Phaser/Tiled/LimeZu renderer; durable resumable state; a GUI control plane.
 
 ## 1. Safety and governance — the keystone
-Nothing else runs until this exists. The incident: 5 citizens in a `for(;;)` loop ran unattended,
-7,633 ticks in 18.5 h (~$195 API-equivalent) on a personal Claude subscription, with no stop
-condition, no backoff, and a browser that was not a kill switch. A repeat is made **structurally
-impossible**:
+Nothing else runs until this exists. An early build ran its citizens in a `for(;;)` loop with no stop
+condition and no backoff, and closing the browser did not stop them (they are headless processes, not
+part of the page). The governor makes that **structurally impossible**:
 
 - **Pause-on-no-viewer (hard).** The sim tracks connected GUI viewers (WebSocket). 0 viewers → it
   broadcasts `run-state: paused` → citizens **stop issuing LLM queries entirely** (zero burn). A viewer
@@ -64,14 +59,9 @@ impossible**:
 - **Shared fleet budget ceiling.** One cross-fleet ceiling (beyond the per-tick `maxBudgetUsd` runaway
   guard): when the fleet's cumulative API-equivalent crosses it, the fleet halts.
 - **Live token meter.** The GUI shows live **fleet tokens / API-equivalent $** (per tick and
-  cumulative), labelled **notional**: on a subscription it is not a bill, it sizes the burn, exactly as
-  the incident doc did. It sits beside the kill switch.
-- **Real kill switch** in the GUI, plus cache/session reuse so ticks stop re-paying cache creation (the
-  post-mortem's 15.6M cache-write tokens/day leak), which matters far more at 25 agents.
-
-> Build vs. run: building Tillwick with an agent team costs **interactive** tokens; *running the fleet*
-> is separately gated on an explicit OK and a healthy budget. A short, bounded throughput spike of the
-> full Haiku roster is the gated step that proves feasibility on a subscription.
+  cumulative), computed at API list prices. It sits beside the kill switch.
+- **Real kill switch** in the GUI, plus cache/session reuse so ticks stop re-paying cache creation
+  every tick, which matters far more at 25 agents.
 
 ## 2. Cognitive core (the paper, mapped to modules under `cognition/`)
 Replaces a stateless per-tick prompt with the full architecture, plugged into the safe runner.
@@ -108,14 +98,14 @@ Everything is natural language, persisted to the memory stream.
   §4.3.2), held in a sim-owned conversation side table.
 - **Relationships**: a knows-each-other graph formed and remembered from interactions; it feeds
   reflection ("who would I spend time with / buy from?").
-- **Information diffusion**: beliefs (a sale, a party, a shortage) travel agent → agent through dialogue;
-  the harness measures spread (the paper's Fig. 9).
+- **Information diffusion**: beliefs (a sale, a party, a shortage) travel agent → agent through dialogue,
+  carrying their provenance chain (`cognition/gossip.ts`), as in the paper's Fig. 9.
 
 ## 5. Economy extensions
 - **Shop stock**: shops hold finite inventory; buys deplete it.
 - **Harvey Oak producer**: a supply store that **creates goods over time**; stock is configurable up
-  front **and** mutable on the fly (by the operator or, optionally, by agents). Underpins scarcity (#3),
-  procurement (#2) and price behaviour.
+  front **and** mutable on the fly (by the operator or, optionally, by agents). Underpins scarcity,
+  procurement and price behaviour.
 - The x402 buy → custody-on-txHash → consume → rebuy loop ([economy.md](economy.md)) is preserved and
   now driven by cognition.
 
@@ -127,15 +117,7 @@ proprietary, so **the raw art is not in this repo**; art loads as a swappable as
 fallback that ships is the renderer's own generated placeholder art; a `ninja` pack slot exists for an
 open tileset, but no such art is bundled.
 
-## 7. Experiment harness
-- **Scenario** = a **seed** (inject an intent or belief into an agent; fire a world event; set shop
-  stock) + **probes**. Seeding must never touch the cognitive core or the world authority.
-- **Probes** (the paper's measures, with economic analogues): information-diffusion %, knows-graph and
-  **trade-graph** density, coordination/attendance, **on-chain volume + tx timing** around the event.
-- **Scenarios**: `festival` (#2, first), `sale` (#1), `supply-shock` (#3), `wealth` (#4); see
-  [experiments.md](experiments.md).
-
-## 8. Persistence
+## 7. Persistence
 Durable, resumable state under `sim/data/` (gitignored): per-agent memory streams, the relationship
 graph, plans, the agent-summary cache, positions, the game clock, and the economy via `events.jsonl`.
 Pause/resume and cross-session resume both rely on it.
@@ -147,42 +129,16 @@ Pause/resume and cross-session resume both rely on it.
 | Retrieval recency · importance · relevance (§4.1, Fig. 6) | `cognition/retrieval.ts` + `cognition/embeddings.ts` (local) |
 | Reflection trees (§4.2, Fig. 7) | `cognition/reflection.ts` |
 | Planning + react/re-plan (§4.3) | `cognition/planning.ts` |
-| Goal layer (planning §4.3, extended) | planned (next phase, below) |
 | Agent summary cache (App. A) | `cognition/summary.ts` |
 | Environment tree → NL (§5.1, Fig. 2) | `sim/world-tree.ts` + `sim/world.json` |
 | Dialogue (§4.3.2) | `cognition/dialogue.ts` + sim side table |
 | Sandbox (the Phaser town) | `renderer/` + Tiled map |
-| Interview / diffusion / coordination eval (§6–7) | harness probes |
+| Interview / diffusion / coordination eval (§6–7) | not built; `npm run grade` covers liveness metrics |
 | Per-tick decision traces (ours) | `cognition/trace.ts` (see [observability.md](observability.md) §7) |
 
 ## Deferred / out of scope
 ERC-8004 identity and trust/validation registries (kept orthogonal); peer-to-peer resale (`sellTo`);
-dynamic price discovery beyond what scenarios need. Unattended long headless runs are out of scope whatever
+dynamic price discovery; a scenario harness (seeded events plus diffusion and trade-graph probes); a
+persistent goals layer on top of the daily plan. Unattended long headless runs are out of scope whatever
 the auth: every run is short, bounded and watched, with pause-on-no-viewer as the safety default.
 
-## Next-phase deltas (2026-06-20)
-The plan as written on that date. Since then the carry-and-give verbs (`give`, `pick_up`, `drop`, `use`),
-the producer and per-tick traces have landed in code; the goals layer has not.
-
-- **Safety + scale:** add a **fleet semaphore** (cap K in-flight cognition calls across citizens),
-  honour `retry-after`, and keep the prompt prefix byte-stable for cache reads. The model is **two
-  clocks**: a synchronous world tick in the sim + asynchronous per-process cognition, not one blocking
-  global step.
-- **Cognition + action:** remove the Agent SDK's deferred-tool friction on the citizen ACT turn (the
-  tool-search tax: 2,941 vs. 5,733 calls in one recorded run) by un-deferring the world tools and
-  stripping inherited built-ins, inside the existing subscription-billed per-tick `query()` (keep a fresh
-  session per tick; no transport swap). On top: the host owns the tools, the model is a pure decision
-  function, the host is ground truth (plus the buy guard), reasoning is logged every turn, and the
-  persona *replaces* the system prompt (so citizens are not handed unrelated built-in tools).
-- **Planning:** wire the already-written react/re-plan and decompose paths, and add a **goals** layer: a
-  persistent ordered sub-goal DAG with prerequisites and locations (decompose first, react per sub-goal,
-  the LLM picks the node and A* walks). Enables multi-step, cross-location goals (shopping for a party).
-- **Social:** fix the relationship wiring (0 of 1,231 trades reached the graph in one run) so trades,
-  dialogues and co-presence persist; trigger walk-up-and-talk on co-location (not only new adjacency),
-  with judgment to continue or stop tied to the agent's goal.
-- **Economy:** finite shop stock + the Harvey Oak producer tick + carry-and-give verbs
-  (pick_up/give/use/drop) + a few durable non-food goods (balloons, cake) + homes as valid destinations.
-  Custody-on-txHash and x402 v2 unchanged; a **gift** moves custody but is not a paid settlement.
-- **Persona:** structured `{name, age, role, station, traits, voice, relationships, routine, tools,
-  buys, shopId, seedMemories, goals}` seeded as memories (Park §3.1); cast expanded beyond the 5
-  merchants.

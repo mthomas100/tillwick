@@ -132,75 +132,44 @@ memory stream: faithful but approximate.
 
 ---
 
-## 5. Behaviour analysis — what an early long run revealed
+## 5. What to look for in a run
 
-A forensic read of one early run (`sim/data/agents/*`, `memory/*`, `events.jsonl`; ~6,937 events,
-agents reached ticks ~1,400). The five most revealing findings:
+Patterns worth checking every time, with the data source that shows each one:
 
-1. **About half the run was a zombie loop: the 2026-06-18 incident's infinite loop, captured frame by
-   frame.** Every citizen ran healthy until ~tick 700–745, then hit `You've hit your session limit ·
-   resets 3pm` and logged **~630–650 consecutive no-op ticks** of `🗣 session limit / ✓ success
-   (cost_usd=0)`, never recovering. All real `purchase` events stop on 2026-06-18T22; the tick streams
-   run to 2026-06-19T23:37. **The harness happily logged `✓ success` for ~5,000 no-op ticks.** This is
-   the strongest argument for structured traces (§7): the loop did **not** halt on auth/quota failure,
-   and nothing flagged it. *(The safety governor and circuit breaker now bound this.)*
+1. **Silent no-op ticks.** A tick that fails on an auth or quota error can still end with an SDK
+   `result` of `success` and `cost_usd: 0`. Count them from the health line
+   (`jq 'select(.result.cost_usd==0)' sim/data/traces/*.jsonl | wc -l`). The runner's circuit breaker
+   halts a citizen after N consecutive failures, so a long run of these means the breaker is not seeing
+   the error.
+2. **Move-spam.** An agent that cannot satisfy its goal (for example, the reserve floor blocks its buy)
+   tends to spend its `maxTurns` on `move()` calls, sometimes repeating the same target twice in one
+   tick. Compare `move` events with `purchase` and `consume` events per agent in `events.jsonl`, and look
+   for `error_max_turns` in the raw transcript.
+3. **Slow ticks.** Measure tick latency from `ts` deltas. The first tick pays for the summary and the
+   daily plan; most later slow ticks are move-spam ticks, not slow cognition.
+4. **Which talk path fired.** Addressed `say`/`talk()` messages from the ACT turn are not the same thing
+   as walk-up-and-talk dialogues. Only closed dialogues (`dialogue.jsonl`) and trades reach the
+   relationship graph, so an empty `sim/data/relationships/` after a run means the dialogue path never
+   completed.
+5. **Invented places.** Agents sometimes name places that are not in `sim/world.json` (a "Main Street",
+   a market stand) or relabel a real building. The world tools reject unknown targets; the rejection is
+   on the tape.
+6. **Reflection quality.** Reflections should populate the structured `citations` field, not only cite
+   inline ("because of 13,14"), and importance should vary rather than sit at one pinned value. Agents
+   that join late may never bank enough salient observations to cross the 150 threshold.
+7. **Gate-limited vs. desire-limited spending.** Compare `worth=true` purchase decisions with guard
+   vetoes. If most vetoes come from the reserve floor, spending is gate-limited.
 
-2. **Courier move-spam, quantified.** The courier fired up to **5 `move()` calls in a single tick**, and
-   **765 moves vs. 25 buys / 37 consumes** across the run: a mover, not a trader. It loses track of its
-   own location and inventory and oscillates Depot ↔ Bakery, even re-issuing byte-identical
-   `move({"to":"depot"})` twice in one tick. It also tops the real-error count (`error_max_turns` ×7).
-   This shows the **per-tick `maxTurns` budget interacts badly with an agent that can't satisfy its
-   goal** (the courier was reserve-blocked from buying, so it just walked).
-
-3. **First-tick latency hypothesis (~108 s): refuted.** Measured from `ts` deltas, tick 1 took
-   **12–23 s** for every agent (among the *faster* ticks), not a cold spike. Tick-1 cost is mildly
-   elevated (~$0.04–0.06 vs. a run mean of ~$0.025): a small summary + daily-plan warm-up. The genuinely
-   slow ticks (smith t7 = 57 s, barista t9 = 43 s) are **move-spam ticks**, not cold cognition.
-
-4. **Two talk systems; the feature under test barely fired.** 511 addressed `say`/`talk()` messages and
-   ~184 reciprocal exchanges happened, but all through the **older ACT-loop `talk()` tool**. The
-   dedicated walk-up-and-talk path fired exactly **3 times, all at shutdown**, completed **0**
-   dialogues, and recorded **0 co-presences**. Only one relationship file existed (1 edge). **1 of ~511
-   dialogues and 0 of 1,231 trades reached the graph.** The plumbing existed (`dialogue-driver.ts`,
-   `relationships.ts`) but the run was too short and too stationary to convert co-presence into
-   recorded dialogue.
-
-5. **Real emergence and metacognition.**
-   - **Hallucinated affordances/geography:** the grocer relabels the real `pub` as *"The Rose & Crown …
-     a tavern likely to have patrons interested in fresh supplies"* and abandons its shop to sell door
-     to door; the courier invents *"Main Street"* and *"the market stand on Main Street"*, places not in
-     `world.json`. During a live test of the observe tool, the grocer tried
-     `move({"to":"the_rose_and_crown"})`.
-   - **Genuine loop detection:** *"I see the trap: I've been buying coffee repeatedly when I already own
-     **209 cups**… I should consume what I have"* (baker); *"I'm stuck repeating the same decision…
-     break this loop"* (courier). Agents catching their own degenerate loops.
-   - **Reflections read as real synthesis** with inline provenance ("because of 13,14", tracing back to
-     the trap observation). But **0/10 reflections populated the structured `citations` field**
-     (provenance was inline text only) and **importance was rule-pinned at 6 for all reflections and
-     plans**, not LLM-scored. Both are known cognition gaps.
-
-Cognition counts (productive window): baker 28 observations / **5 reflections** / 37 plans; barista
-30 / **5** / 33; courier 11 / **0** / 8; grocer 9 / **0** / 10; smith 9 / **0** / 9. **Only the baker and
-the barista ever reflected**: the others joined late (game-min ~2,370 vs. the baker's ~481) and never
-banked enough salient observations to cross the 150 threshold.
-
-Economy (a **real circular flow**): 1,227 of 1,231 purchases were genuine inter-agent trades; the
-own → consume → rebuy loop is tight (baker + coffee: 209 buys / 212 consumes, ~198 clean cycles).
-Spending is **gate-limited, not desire-limited**: 2,200 `worth=true` decisions, ~811 of them blocked by
-the reserve floor.
-
-> **Caveat for any "agent X did N things" claim:** the back half of that run is zombie; scope counts to
-> the productive first ~700 ticks. `tick` in the JSONL is a per-process counter that **recurs across
-> game-days**, so don't aggregate by raw tick number across a long run.
+> **Caveat for any "agent X did N things" claim:** `tick` in the JSONL is a per-process counter that
+> **recurs across game-days**, so don't aggregate by raw tick number across a long run.
 
 ---
 
 ## 6. Safety discipline
 
-The citizens are the cause of the [2026-06-18 token-drain incident](incident-2026-06-18-token-drain.md)
-(an unbounded loop drained the subscription's rate-limit budget; closing the browser did NOT stop them,
-because they are headless backend processes). The incident is resolved, but observability work must
-never re-trigger it.
+The citizens are headless backend processes: closing the browser does NOT stop them on its own (the
+sim's pause-on-no-viewer does). An unbounded loop of them spends model calls around the clock, so
+observability work must never start one.
 
 - **Default to read-only.** `inspect`, `trace` and `observe -- tail` spawn nothing and spend zero tokens.
 - **`observe -- spawn` is gated.** It refuses to launch unless `MAX_TICKS` is set (a hard stop) **or**
@@ -219,14 +188,14 @@ never re-trigger it.
 ## 7. Structured per-tick traces — `cognition/trace.ts`
 
 **Status: built.** The citizen loop appends one line per tick to `sim/data/traces/<id>.jsonl` right
-after reporting usage. It adds the two things the behaviour analysis (§5) showed were missing:
+after reporting usage. It adds two things that reconstructing from the memory stream could not give:
 
 1. **The decision context that went IN**: the retrieved working set plus per-memory subscores
    (recency / importance / relevance) computed by `retrieval.ts`. Without it, `trace` has to
    *reconstruct* the input from the memory stream. Park et al. make this first-class (you can see exactly
    which memories surfaced for a decision).
-2. **A per-tick health line** that would have screamed during the zombie loop: `{result, cost,
-   num_turns, tools_used, error?}` in one greppable line, so "5,000 no-op ticks" is one `jq` away.
+2. **A per-tick health line**: `{result, cost, num_turns, tools_used, error?}` in one greppable line,
+   so a run of silent no-op ticks (§5) is one `jq` away.
 
 ```jsonc
 {
@@ -268,10 +237,10 @@ memory / plans / reactions / reflections) through the real retrieve → prompt p
 | **Replay** | Pure read-back of serialized per-step state, zero LLM calls: a deterministic re-watch. | The **event ledger + per-tick transcripts and traces are the replay tape**: replaying folds the append-only ledger forward with no model calls. |
 | **Full agent-state inspection** | `scratch.json` (identity + current action + hyperparameters) + associative memory + spatial memory, all plain JSON. | `npm run inspect`; the memory stream is their `nodes.json`. (A consolidated `scratch`-style state file is the missing piece, §1.) |
 | **Memory record format** | NL description + creation ts + last-access ts + **poignancy 1–10**; retrieval = **α·recency + α·importance + α·relevance** (all α = 1). | `memory-stream.ts` uses this shape; `retrieval.ts` is this sum. |
-| **Reflection trees** | When summed importance crosses **150**, query the 100 most recent records, ask for 3 salient questions, synthesize thoughts that **cite their evidence**. | `reflection.ts` (threshold 150). **Gap:** reflections cite inline ("because of 13,14") but leave the structured `citations` field empty (§5). |
+| **Reflection trees** | When summed importance crosses **150**, query the 100 most recent records, ask for 3 salient questions, synthesize thoughts that **cite their evidence**. | `reflection.ts` (threshold 150). Check that reflections fill the structured `citations` field, not only inline text (§5). |
 | **The interview** | Probe believability by **asking the agent** questions in 5 categories, answered through its own memory at a given time. | The §7 next step; the highest-value technique not yet ported. |
 | **"Caused-by" explicability** | Trace an emergent behaviour (the Valentine's party) back through observation → reflection → plan → action; verify diffusion quantitatively (party knowledge 1 → 13 of 25 agents; network density 0.167 → 0.74). | `npm run trace` (one decision); a **diffusion query** over the ledger ("who holds memory M at tick N, before/after a seeded fact") is the natural next analysis tool. |
-| **Load + fork** | A run is a fork of a named prior state; "fork at step N" = copy meta + state. | The append-only ledger and streams make **"fork at tick N" = copy + truncate to N**: cheap branchable experiments (see [experiments.md](experiments.md)). |
+| **Load + fork** | A run is a fork of a named prior state; "fork at step N" = copy meta + state. | The append-only ledger and streams make **"fork at tick N" = copy + truncate to N**: cheap branchable experiments. |
 
 **Sources:** Park et al., *Generative Agents: Interactive Simulacra of Human Behavior*, arXiv:2304.03442
 (https://arxiv.org/abs/2304.03442); full text on ar5iv
@@ -292,8 +261,7 @@ jq -r .kind sim/data/events.jsonl | sort | uniq -c
 # Who traded with whom (buyer → seller)
 jq -r 'select(.kind=="purchase")|"\(.actor) → \(.payload.counterparty) [\(.payload.item)]"' sim/data/events.jsonl | sort | uniq -c | sort -rn
 
-# Find a zombie loop in any run (no-op ticks)
-grep -c 'session limit' sim/data/agents/*.log
+# Find silent no-op ticks in any run
 jq 'select(.result.cost_usd==0)' sim/data/traces/*.jsonl | wc -l
 
 # One agent's whole tick N, raw

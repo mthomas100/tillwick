@@ -31,7 +31,7 @@ import { type Complete } from "./llm.js";
 // parties see the same interactions) but is stored independently, and directed sentiment/trust is genuinely
 // one-sided (A may trust B more than B trusts A).
 
-// ---- the interaction signal (agreed with `conversationalist`; trade is from the ledger) ----------------
+// ---- the interaction signal (shared with the dialogue driver; trade is from the ledger) ----------------
 
 // A dialogue happened between two agents. Emitted ONCE per conversation (not per line) at conversation close.
 // This is the NORMALIZED signal the graph updates from; the citizen loop typically gets it by feeding
@@ -116,7 +116,7 @@ export type Relation = {
   topics: string[]; // recency-bounded salient topics/items (most-recent last)
   sentiment?: number; // OPTIONAL directed feeling, -1..1 (negative=wary, positive=warm); LLM-scored
   trust?: number; // OPTIONAL directed reliance, 0..1; LLM-scored. Undefined = "not yet assessed".
-  // OPINION NOTE (town-alive B2): the ego's current stated stance on `other` WITH its reason — updated after
+  // OPINION NOTE: the ego's current stated stance on `other` WITH its reason — updated after
   // conversations (opinion DRIFT is the point: a bad exchange can flip like→dislike). Distinct from the
   // numeric sentiment: this is the quotable "I like her — she always asks about my music" that conditions
   // dialogue and shows in describeRelationship. Set via noteOpinion() (pure) or assessOpinion() (LLM seam).
@@ -213,7 +213,7 @@ export class RelationshipGraph {
   /**
    * Adapter: fold cognition/dialogue.ts's `DialogueSummary` (its verbatim end-of-conversation record) into
    * THIS ego's graph. The citizen-loop hook calls this once per participant after a conversation closes, so
-   * the lead's wiring is a one-liner and `relationships.ts` consumes `conversationalist`'s record directly
+   * the wiring is a one-liner and `relationships.ts` consumes the dialogue driver's record directly
    * (no translation in the hook). Reconciles the field names and HONORS `outcome`:
    *   • "conversed" → a dialogue signal (familiarity scaled by `turns`; `topic` + this ego's `summaryFor`
    *     line enrich the digest).
@@ -309,14 +309,14 @@ export class RelationshipGraph {
    * A REFLECTION DIGEST: the agent's most salient relationships rendered as short NL lines, so relationships
    * become memories the reflection pass can synthesize over (the design's "feeds reflection: who would I
    * spend time with / buy from?"). Returns the top-`max` relations by familiarity as one line each. The
-   * citizen loop folds these into the memory stream as observations (HOOKS SPEC below), where reflection
+   * citizen loop folds these into the memory stream as observations (see citizens/citizen.ts), where reflection
    * surfaces and cites them. Pure string-building — no model call.
    */
   reflectionDigest(max = 5): string[] {
     return this.topRelations(max, "familiar").map((r) => this.describeRelationship(r.other));
   }
 
-  // ---- opinion note (town-alive B2: opinions as first-class, with drift) --------------------------------
+  // ---- opinion note (opinions as first-class, with drift) --------------------------------
 
   /**
    * Set the ego's stated opinion of `other` directly (pure — no model call). The caller supplies the stance

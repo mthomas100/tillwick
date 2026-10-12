@@ -5,7 +5,7 @@ import { type Complete } from "./llm.js";
 // day). Retrieval weights this; reflection sums it to decide when to reflect. The paper scores poignancy at
 // memory-CREATION; Mind calls this from observe() when no explicit importance is supplied.
 //
-// SEAM DISCIPLINE (llm.ts, INC-2026-06-18): takes the INJECTED `Complete` — NO SDK import, free + determin-
+// SEAM DISCIPLINE (llm.ts): takes the INJECTED `Complete` — NO SDK import, free + determin-
 // istic under stubComplete in tests. DEGRADE-DON'T-DIE: a thrown/empty/garbled completion → a LOW default
 // (2), never throws into a tick. Low (not high) on failure so a model hiccup can't make everything look
 // poignant and spuriously trip the reflection threshold.

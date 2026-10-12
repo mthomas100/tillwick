@@ -1,7 +1,7 @@
 /* ============================================================================
- * control.css — W0 operator control plane panel.
+ * control.css — the operator control plane panel.
  *
- * Owned by gui-smith (Wave 0). Internal styling ONLY — position, size, and
+ * Internal styling ONLY — position, size, and
  * z-index are ALL here (control.js injects NO <style>; all cascade lives in
  * this file, loaded after layout.css).
  *

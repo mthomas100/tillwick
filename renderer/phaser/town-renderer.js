@@ -1,4 +1,4 @@
-// renderer/phaser/town-renderer.js — the Wave 3 renderer ENTRY POINT (replaces renderer/main.js).
+// renderer/phaser/town-renderer.js — the renderer ENTRY POINT (replaces renderer/main.js).
 // Boots the Phaser game into #left, wires the sim WebSocket to the scene + activity feed, and keeps the
 // load-bearing coexistence contracts the existing DOM overlays depend on:
 //   - the Phaser <canvas> gets id="c"            → inspector.js (getElementById("c")) binds its click handler;
@@ -8,7 +8,7 @@
 //
 // Mount order matters: index.html loads phaser.min.js (global Phaser) BEFORE this module. This file is an ESM
 // module (type="module"), same as the old main.js, so the <script type="module" src="./phaser/town-renderer.js">
-// swap is a one-line change in index.html (the lead applies it — index.html is a hot file).
+// swap was a one-line change in index.html.
 
 import { TownScene } from "./town-scene.js";
 import { InteriorScene } from "./interior-scene.js";
@@ -49,7 +49,7 @@ function bootGame(w) {
     // ONLY the TownScene boots. The InteriorScene is NOT in this array — if it were, Phaser would AUTO-START it
     // (init→preload→create) and its create() would draw a room OVER the town (the "translucent square" bug).
     // We add it below with autoStart:false so it stays fully dormant (no init/preload/create, nothing rendered)
-    // until a building click calls game.scene.run("interior"). Town view must be byte-identical to Wave A.
+    // until a building click calls game.scene.run("interior"). Town view must stay byte-identical.
     scene: [scene],
     banner: false,
   });
@@ -146,8 +146,8 @@ function enterInterior(buildingId) {
   game.scene.sleep("town");
   game.scene.bringToTop("interior");
   // HIDE the town #hud DOM overlay while inside — it's town chrome ("N citizens walking") that's meaningless in
-  // an interior AND it sits top-left exactly over the interior's EXIT button (the operator-flagged "can't find
-  // the way back"). The interior scene draws its own header + EXIT. Restored on exit.
+  // an interior AND it sits top-left exactly over the interior's EXIT button (users couldn't find
+  // the way back). The interior scene draws its own header + EXIT. Restored on exit.
   if (hud) hud.style.display = "none";
 }
 function exitInterior() {

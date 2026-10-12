@@ -9,7 +9,7 @@
 // it polls GET /run-state and the moment the run goes stopped / terminally-paused (or the duration elapses)
 // it SIGKILLs every citizen it spawned and exits. No PID tracking needed in the sim.
 //
-// SAFETY (INC-2026-06-18 was a citizen-fleet token-drain): the run is bounded by the REQUIRED duration as a
+// SAFETY (an early build's unbounded citizen loop is the reason): the run is bounded by the REQUIRED duration as a
 // HARD cap, the sim's $5 fleet ceiling + pause-on-no-viewer governor still apply, MAX_TICKS caps each citizen,
 // and there is NO unbounded loop. A double-spawn guard (pgrep) refuses to stack a second fleet. NEVER
 // regenerates wallets (no gen-citizens). Auth comes from the environment (citizens/auth.ts).

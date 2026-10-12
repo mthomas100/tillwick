@@ -1,6 +1,6 @@
 // scripts/verify-s1-3.ts — GATED S1-3 zero-token e2e (carry-and-give verbs). NO LLM is called — this drives
 // the sim's /act HTTP API directly, so it spends ZERO model tokens. It DOES boot a sim on :4042, so it is
-// GATED on the team's single :4042 slot (coordinate through the lead before running).
+// needs :4042 free (don't run it while a live demo uses that port).
 //
 // PROVES the acceptance: A acquires X → A gives X to adjacent B → B holds X, A doesn't, a `give` event is
 // recorded, and NO money moved (no purchase/sale event, gift is free). Then drop/pick_up round-trip + use.

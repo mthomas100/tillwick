@@ -7,7 +7,7 @@ import { holdDialogue, type DialogueSummary, type DialogueGossip } from "../cogn
 import type { Complete } from "../cognition/llm.js";
 import { personaFor as rosterPersonaFor } from "./personas.js";
 
-// THE CITIZEN-SIDE CONVERSATION ORCHESTRATOR (Wave 2b, DECIDED D6: the SIM never calls an LLM, so a
+// THE CITIZEN-SIDE CONVERSATION ORCHESTRATOR (the SIM never calls an LLM, so a
 // conversation runs CITIZEN-side, in the initiator's process). On adjacency the initiator:
 //   1. constructs the partner's Mind from the partner's PERSISTED memory stream (sim/data/memory/<partner>.jsonl)
 //      — but READ-ONLY (see CROSS-PROCESS SAFETY below),
@@ -75,16 +75,16 @@ export type MaybeDriveDialogueOpts = {
   /** Resolve a partner's persona/system text for in-character conditioning. Defaults to citizens/personas.ts
    *  (falling back to a minimal persona for a non-roster id). Injectable so tests don't need a real persona. */
   personaFor?: (id: string) => string;
-  /** town-alive B1: the partner IGNITION already elected (citizens/ignition.ts decideIgnition — windowed
+  /** the partner IGNITION already elected (citizens/ignition.ts decideIgnition — windowed
    *  election / reply-mode). When set, pickPartner's legacy lower-id-only rule is BYPASSED: the caller has
    *  done the single-host election (and reply-mode legitimately hosts as the say's target). Must be present
    *  in adjacentTo (defensive: a stale override for someone who left is ignored → no-neighbors). */
   partnerOverride?: string;
-  /** town-alive B2: what I know of the partner (RelationshipGraph.describeRelationship) — folded into the
+  /** what I know of the partner (RelationshipGraph.describeRelationship) — folded into the
    *  situation so BOTH the engage decision and every utterance are conditioned on the relationship (paper
    *  §4.3.2: dialogue conditioned on summarized memory ABOUT the partner). */
   relationshipLine?: string;
-  /** town-alive B2: gossip I intend to pass (GossipStore.pickToShare().wire + seedLine). The seedLine is
+  /** gossip I intend to pass (GossipStore.pickToShare().wire + seedLine). The seedLine is
    *  folded into the situation (primes the model to actually say it); the wire rides the closed summary. */
   gossipSeed?: { wire: DialogueGossip; seedLine: string };
 };
@@ -100,9 +100,9 @@ export async function maybeDriveDialogue(opts: MaybeDriveDialogueOpts): Promise<
   const memoryDir = opts.memoryDir ?? DEFAULT_MEMORY_DIR;
   const resolvePersona = opts.personaFor ?? defaultPersonaFor;
 
-  // --- host election. PREFERRED (town-alive B1): the caller's ignition decision (partnerOverride) — the
+  // --- host election. PREFERRED: the caller's ignition decision (partnerOverride) — the
   // windowed election / reply-mode already picked exactly one host for the pair, so the legacy rule below
-  // must not second-guess it (it was the D17 pathology: lower-id-only starved every sighting the higher-id
+  // must not second-guess it (it was the pathology: lower-id-only starved every sighting the higher-id
   // side made — 2 of today's 3). LEGACY (no override): lower-id-only, kept for back-compat callers/tests. ---
   let partner: string | null;
   if (opts.partnerOverride) {
@@ -210,13 +210,13 @@ async function recordSummary(
     }
   } catch (e) {
     // the conversation already happened in memory; a failed record must not crash the tick — but
-    // SURFACE it (D17: a silently-swallowed POST would hide why dialogue.jsonl stays empty).
+    // SURFACE it (a silently-swallowed POST would hide why dialogue.jsonl stays empty).
     console.warn(`[dialogue] record POST failed for ${summary.id} (${summary.outcome}): ${(e as Error).message}`);
   }
 }
 
 // Default recorder: POST the summary to the sim's dialogue endpoint. The sim is the single writer of
-// sim/data/dialogue.jsonl + the WS broadcaster (the lead builds this endpoint). Best-effort fetch.
+// sim/data/dialogue.jsonl + the WS broadcaster. Best-effort fetch.
 async function defaultPostRecord(summary: DialogueSummary): Promise<void> {
   await fetch(`${SIM}/dialogue`, {
     method: "POST",

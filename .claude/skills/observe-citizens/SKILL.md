@@ -45,7 +45,7 @@ Everything except `observe -- spawn` is **read-only and spends zero tokens**; pr
 - "Show me their memory / relationships / quirks / who they are" → `npm run inspect`.
 - "Why did the courier keep moving?" / "explain this decision" → `npm run trace -- <id> <tick>`.
 - "What happened in the run / what are their quirks" → `npm run grade` + `npm run replay`, and
-  observability.md §5 (a worked behaviour analysis).
+  observability.md §5 (what to look for in a run).
 - "What does a per-tick trace contain?" → observability.md §7 (`sim/data/traces/<id>.jsonl`).
 
 ## How to trace ONE decision by hand (when the tool isn't enough)
@@ -89,10 +89,9 @@ The friendliest single-tick view is the pretty log: `grep '\[<id> tN\]' sim/data
 
 ## Gotchas
 
-- **Token-drain hazard.** An unbounded loop of citizens once drained the subscription's rate-limit
-  budget, and closing the browser did NOT stop them (they are headless processes); see
-  [the post-mortem](../../../docs/design/incident-2026-06-18-token-drain.md). The incident is resolved,
-  but the discipline stays: **default to the read-only tools**, and **never** run `npm run citizens`
+- **Token-spend hazard.** An unbounded loop of citizens spends model calls around the clock, and closing
+  the browser alone does NOT stop them (they are headless processes; the sim's pause-on-no-viewer does).
+  So: **default to the read-only tools**, and **never** run `npm run citizens`
   unbounded. `observe -- spawn` is **gated**: it refuses unless `MAX_TICKS` is set OR
   `OBSERVE_SPAWN_OK=1`. After ANY spawn run, verify cleanup: `pgrep -fl 'citizens/citizen.ts'` (expect
   0). Re-kill: `pkill -9 -f 'citizens/citizen.ts'`.
@@ -120,7 +119,7 @@ The friendliest single-tick view is the pretty log: `grep '\[<id> tN\]' sim/data
 ## References
 
 - [docs/design/observability.md](../../../docs/design/observability.md): the full map (every source, the
-  config/quirk map, a behaviour analysis of an early run, per-tick traces, the paper's methods).
+  config/quirk map, what to look for in a run, per-tick traces, the paper's methods).
 - [docs/design/architecture.md](../../../docs/design/architecture.md): paper → modules.
 - Tools: `scripts/{observe-windows,inspect-citizen,trace-decision,grade-run,replay-run}.ts`.
 - Running the town: the [run-town](../run-town/SKILL.md) skill.

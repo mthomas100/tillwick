@@ -1,7 +1,7 @@
 // sim/flight-tape.ts — the FLIGHT TAPE (T0-tape): one run-scoped, append-only record of every beat the
 // world authority can see, located in BOTH coordinate spaces at the moment it happened.
 //
-// WHY (audit 2026-07-18, flightrecorder.md): the operator's screenshots showed sim state and rendered
+// WHY: screenshots showed sim state and rendered
 // pixels disagreeing (baker "baking…" while standing in the doorway) and NOBODY could prove which layer
 // lied — because interior presence, earshot delivery, walk paths and run identity lived only in RAM.
 // events.jsonl beats carry no coordinates and no game-time; dialogue.jsonl carries no wall-clock; the
@@ -14,7 +14,7 @@
 //   sim/data/runs/<runId>/manifest.json   RunManifest (start/end in wall + game clock, roster, config)
 //   sim/data/runs/_idle/tape.jsonl        beats that occur while NO run is active (manual pokes)
 //
-// The sim instantiates ONE FlightTape and calls it from 6 hook sites (see the hook-spec doc); citizens
+// The sim instantiates ONE FlightTape and calls it from 6 hook sites; citizens
 // never touch this module. Everything here is fs + clock only — the sim never calls an LLM (invariant).
 // Legacy writers (events.jsonl / dialogue.jsonl) are UNTOUCHED — the tape is additive.
 
@@ -34,9 +34,9 @@ export type TapeLoc = {
 };
 
 /** One line of tape.jsonl.
- *  INVARIANT (D32): every beat carries wall `t` AND game `gm` AND `run` — never rely on any one alone to
+ *  INVARIANT: every beat carries wall `t` AND game `gm` AND `run` — never rely on any one alone to
  *  scope (wall ts survives clock resets; gm survives wall skew; run is the only true partition key).
- *  `tid` is the CAUSAL JOIN KEY (D32): "<actor>:<tick>" for beats caused by a specific agent-tick —
+ *  `tid` is the CAUSAL JOIN KEY: "<actor>:<tick>" for beats caused by a specific agent-tick —
  *  perceive → cognition (traces/*.jsonl, same id+tick) → choice → act → mutation join on (run, tid).
  *  Sim-derived beats not tied to a tick (pos steps, enter/leave from the tick loop) have no tid and join
  *  by (actor, time-adjacency) — that asynchrony is real, not a schema gap. */
@@ -237,7 +237,7 @@ export class FlightTape {
   /** Mirror of recordEvent(): every world event (say/status/produce/consume/purchase/give/… and peers'
    *  menu, choice, suppressed, buy-attempt/402/settled/failed, gossip-passed) lands on the tape too,
    *  enriched with the actor's location. Kind passes through unchanged (greppable). A `tick` (or legacy
-   *  `turn`) field in the payload — the D32 citizen contract — is lifted into the causal join key. */
+   *  `turn`) field in the payload — the citizen contract — is lifted into the causal join key. */
   event(e: { actor: string; kind: string; payload?: unknown; related_id?: string; txHash?: string }, at?: TapeLoc): void {
     const data: Record<string, unknown> = {};
     if (e.payload !== undefined) data.payload = e.payload;
@@ -247,25 +247,25 @@ export class FlightTape {
     this.beat(e.kind, e.actor, at, data, typeof tick === "number" ? `${e.actor}:${tick}` : undefined);
   }
 
-  /** D32 layer 4 — a FAILED or UNKNOWN /act, loud. The act-fallthrough trap (unknown actions silently
+  /** layer 4 — a FAILED or UNKNOWN /act, loud. The act-fallthrough trap (unknown actions silently
    *  no-op'ing) becomes a tape beat with the reason; silence is never unexplained again. */
   actFail(actor: string, at: TapeLoc | undefined, d: { action: string; reason: string; tick?: number }): void {
     this.beat("act-fail", actor, at, { action: d.action, reason: d.reason }, typeof d.tick === "number" ? `${actor}:${d.tick}` : undefined);
   }
 
-  /** D32 layer 1 — what the agent PERCEIVED this tick: a digest (counts + salient ids) + a short hash of
+  /** layer 1 — what the agent PERCEIVED this tick: a digest (counts + salient ids) + a short hash of
    *  the full payload so any two layers can prove they saw the same thing. Full-payload taping is the
    *  caller's choice (env-gated in the hook) — the digest is always enough to join and usually to debug. */
   perceive(actor: string, at: TapeLoc | undefined, d: Record<string, unknown>, tick?: number): void {
     this.beat("perceive", actor, at, d, typeof tick === "number" ? `${actor}:${tick}` : undefined);
   }
 
-  /** D32 layer 7 — a custody transition (item moved between agents), stamped with the settlement hash. */
+  /** layer 7 — a custody transition (item moved between agents), stamped with the settlement hash. */
   custody(d: { item: string; from?: string; to: string; txHash?: string; shop?: string }): void {
     this.beat("custody", d.to, undefined, d as unknown as Record<string, unknown>);
   }
 
-  /** D32 layer 8 — per-tick usage/latency report (POST /usage mirror): the infra half of the chain. */
+  /** layer 8 — per-tick usage/latency report (POST /usage mirror): the infra half of the chain. */
   usage(actor: string, d: Record<string, unknown>): void {
     const tick = (d as { tick?: unknown }).tick;
     this.beat("usage", actor, undefined, d, typeof tick === "number" ? `${actor}:${tick}` : undefined);
@@ -303,7 +303,7 @@ export class FlightTape {
   }
 
   /** Earshot fan-out: who was actually in range of an utterance/dialogue at speak time — AND who was
-   *  considered but EXCLUDED, with why (D32 layer 5: participant | walls | range). Silence explained. */
+   *  considered but EXCLUDED, with why (layer 5: participant | walls | range). Silence explained. */
   earshot(speaker: string, at: TapeLoc | undefined, d: { kind: "say" | "dialogue"; to?: string; audience: string[]; excluded?: Array<{ id: string; why: string }>; gist?: string }): void {
     this.beat("earshot", speaker, at, d as unknown as Record<string, unknown>);
   }

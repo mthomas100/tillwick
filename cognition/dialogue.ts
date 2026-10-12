@@ -10,10 +10,10 @@ import type { Complete } from "./llm.js";
 // graph (sociologist's cognition/relationships.ts consumes the returned DialogueSummary as its primary
 // "who talked to whom about what" signal).
 //
-// SEAM DISCIPLINE (llm.ts, INC-2026-06-18): NO SDK import. Every model call goes through the injected
+// SEAM DISCIPLINE (llm.ts): NO SDK import. Every model call goes through the injected
 // `Complete` (the real Claude-backed one is wired by the citizen runtime; tests inject stubComplete at ZERO
 // token spend). We talk to each agent's cognition ONLY through the Mind public API (summary / contextFor /
-// observe) — never its internals — so this module composes the W1 core without re-implementing it.
+// observe) — never its internals — so this module composes the cognitive core without re-implementing it.
 //
 // DEGRADE-DON'T-DIE (the repo rule: world-tools getJson, run-state best-effort writes): every model call is
 // best-effort. A thrown/empty Complete never throws out of holdDialogue — the conversation just gets shorter
@@ -25,7 +25,7 @@ import type { Complete } from "./llm.js";
 /** One spoken line in a dialogue, in order. */
 export type Utterance = { speaker: string; text: string };
 
-/** Gossip riding a conversation (town-alive B2 — the paper's information diffusion made mechanical).
+/** Gossip riding a conversation (the paper's information diffusion made mechanical).
  *  Structurally mirrors cognition/gossip.ts GossipWire (declared here, NOT imported, so dialogue.ts stays
  *  decoupled — the same pattern as relationships.ts DialogueSummaryLike). `chain` already ends with the
  *  teller. The driver seeds it via opts.gossipSeed; a CONVERSED summary carries it verbatim so (a) the
@@ -44,7 +44,7 @@ export type DialogueGossip = { id: string; topic: string; gist: string; origin: 
  */
 export type DialogueSummary = {
   id: string; // stable conversation id: `dlg:${a}:${b}:${startedAtGameMin}` (participants sorted)
-  /** WALL-CLOCK close time (ISO). flightrecorder's run key: the game clock has been RESET across runs, so
+  /** WALL-CLOCK close time (ISO). the flight tape's run key: the game clock has been RESET across runs, so
    *  gameMin ranges from different runs overlap and can't scope dialogue.jsonl lines — wall ts can. Stamped
    *  at close for BOTH outcomes. (Old-format lines lack it; readers must tolerate absence.) */
   ts?: string;
@@ -88,7 +88,7 @@ export type DialogueOpts = {
   /** Force the engagement decision (skip the walk-by-vs-converse model call). Handy for tests / scenarios
    *  that want a guaranteed conversation. Omit to let the model decide. */
   forceEngage?: boolean;
-  /** Which agents' memory streams to fold the closed dialogue back into. CROSS-PROCESS SAFETY (W2b live
+  /** Which agents' memory streams to fold the closed dialogue back into. CROSS-PROCESS SAFETY (live
    *  driver): in the live fleet each agent runs in its OWN process and owns its OWN sim/data/memory/<id>.jsonl;
    *  a second process appending to a partner's file would RACE its writer. So the citizen-side driver
    *  constructs the partner's Mind READ-ONLY (to condition utterances) and passes "initiator" here, writing
@@ -97,7 +97,7 @@ export type DialogueOpts = {
    *  behavior (the paper folds it into both). "none" writes neither (e.g. a pure dry-run). `a` is always the
    *  initiator, so "initiator" === write a only. */
   persistMemoryFor?: "both" | "initiator" | "none";
-  /** Gossip the initiator intends to pass in this conversation (town-alive B2). The driver builds it from
+  /** Gossip the initiator intends to pass in this conversation. The driver builds it from
    *  its GossipStore (chain ends with the initiator) and ALSO folds the tell-intent into `situation` so the
    *  model actually says it; when the pair converses, the summary carries it verbatim (see
    *  DialogueSummary.gossip). Ignored on walk_by. */
@@ -510,7 +510,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const isaMem = isabella.stream.recent(1)[0];
     assert(/klaus/i.test(isaMem.text), "isabella's newest memory is about klaus");
 
-    // --- persistMemoryFor:"initiator" (W2b CROSS-PROCESS SAFETY): writes ONLY the initiator's stream ---
+    // --- persistMemoryFor:"initiator" (CROSS-PROCESS SAFETY): writes ONLY the initiator's stream ---
     // The live driver constructs the partner READ-ONLY and must NOT append to the partner's real .jsonl.
     // (Advance the game clock so the POV observation isn't an exact-recent duplicate of an earlier run's.)
     gameMin = 700;

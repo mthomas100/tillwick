@@ -1,4 +1,4 @@
-// renderer/phaser/town-scene.js — the Phaser 3 scene that draws the living town (Wave 3 engine).
+// renderer/phaser/town-scene.js — the Phaser 3 scene that draws the living town.
 //
 // REPLACES the flat-canvas draw in renderer/main.js. Responsibilities:
 //   - build the town from sim/world.json (ground lanes + buildings) via the ACTIVE asset pack (art-agnostic);
@@ -26,7 +26,7 @@ const DIALOGUE_STAGGER_MS = 1300; // gap between successive turns as they replay
 const DIALOGUE_LINE_MS = 2400;    // how long each replayed turn's bubble lingers (> the gap so it reads)
 // A3-2: a role-action status ("🥖 baking…") is a transient, lower-key bubble than a spoken line.
 const STATUS_BUBBLE_MS = 4500;
-// verb → emoji when a status event omits payload.emoji (behaviorist may send either). Fallback 🛠.
+// verb → emoji when a status event omits payload.emoji (the sim may send either). Fallback 🛠.
 const STATUS_EMOJI = { bake: "🥖", busk: "🎸", play: "🎸", study: "📚", read: "📚", sell: "🪙", restock: "📦", deliver: "📦", tend: "🧹", clean: "🧹", cook: "🍳", brew: "☕", serve: "☕", craft: "🔨", forge: "🔨", build: "🔨", work: "🛠" };
 // Does a string already LEAD with an emoji/pictograph? (so we don't double-prepend when behaviorist bakes the
 // emoji into payload.text). Uses the Unicode Extended_Pictographic property — covers every emoji glyph; guarded
@@ -96,7 +96,7 @@ export class TownScene extends Phaser.Scene {
       this.showBubble(ev.actor, `${ev.payload.text}`);
     } else if (ev.kind === "status" && ev.payload) {
       // A3-2: a role-action status — a transient emoji bubble over the actor ("🥖 baking…"). Robust to BOTH
-      // agreed conventions (locked w/ behaviorist): the emoji may live in a separate `payload.emoji`, OR be
+      // agreed conventions with the sim: the emoji may live in a separate `payload.emoji`, OR be
       // baked into `payload.text` ("🥖 baking…"). So: start from `text`; only PREPEND an emoji if the text
       // doesn't already lead with one (else "🥖 baking…" would render "🥖 🥖 baking…"). Emoji source order:
       // explicit payload.emoji → verb→emoji map → 🛠 default.
@@ -105,7 +105,7 @@ export class TownScene extends Phaser.Scene {
       const text = (p.text != null && String(p.text).trim()) ? String(p.text).trim() : (verb || "working…");
       const emoji = p.emoji || STATUS_EMOJI[verb] || "🛠";
       const label = startsWithEmoji(text) ? text : `${emoji} ${text}`;
-      // honor an optional payload.ttlMs (behaviorist may send a fade hint); else our default linger.
+      // honor an optional payload.ttlMs (the sim may send a fade hint); else our default linger.
       const ttl = (typeof p.ttlMs === "number" && p.ttlMs > 0) ? p.ttlMs : STATUS_BUBBLE_MS;
       this.showBubble(ev.actor, label, ttl);
     }
@@ -200,7 +200,7 @@ export class TownScene extends Phaser.Scene {
     // A WORLD-covering tint rectangle (NOT screen-fixed). The earlier screen-fixed version (setScrollFactor(0),
     // sized to cam.width×cam.height) was WRONG: a scrollFactor-0 object still gets scaled by the camera ZOOM, and
     // the town frames at zoom ~0.59, so a canvas-sized rect covered only ~59% of the screen (top-left) → a
-    // translucent SQUARE with un-tinted map beyond it (operator-flagged). Fix: cover the whole WORLD at
+    // translucent SQUARE with un-tinted map beyond it. Fix: cover the whole WORLD at
     // scrollFactor 1 (moves with the map) sized to the full world px — every camera view then sees uniform tint at
     // any zoom/pan, with zero per-frame math. Non-interactive + high depth so it never eats clicks / perturbs
     // depth. Sized in buildTown()/here from the world; re-sized on a world rebuild via syncDayNightSize().
@@ -367,7 +367,7 @@ export class TownScene extends Phaser.Scene {
   // Frame the ENTIRE town inside the viewport — "contain"/letterbox, NOT "cover" — so NOTHING is ever clipped:
   // not the top stories under the #hud band, not the right-edge buildings, not the bottom. The whole map is on
   // screen at the baseline zoom; the wheel zooms IN from there (never out past the full-town frame). Re-run on
-  // every resize. (Operator bar: zero cut-off anywhere.)
+  // every resize. (Goal: zero cut-off anywhere.)
   fitToContainer() {
     if (!this.world) return;
     const cam = this.cameras.main;
@@ -396,7 +396,7 @@ export class TownScene extends Phaser.Scene {
     const viewW = vw / z, viewH = vh / z;     // viewport in world units
     const originX = -PAD / z;                  // world x at the viewport's left edge
     const originY = -(HUD + PAD) / z;          // world y at the viewport's top edge (town pushed below the HUD)
-    // PAN FIX (operator-flagged): the bounds USED to be EXACTLY this framed rect (originX,originY,viewW,viewH) ==
+    // PAN FIX: the bounds USED to be EXACTLY this framed rect (originX,originY,viewW,viewH) ==
     // the viewport at base zoom → Phaser clamps scroll so the viewport stays inside bounds, leaving ZERO pan slack
     // → drag-pan / two-finger-pan did NOTHING at the default zoom (the bug). Fix: EXPAND the bounds by a generous
     // PAN MARGIN on every side so there's room to scroll around the framed town at any zoom. We still centerOn the
@@ -691,7 +691,7 @@ export class TownScene extends Phaser.Scene {
 }
 
 // Clamp a zoom to [base, base*3]. `base` defaults to 1 if the fit hasn't run yet. Module-scope so the wheel
-// handler + zoomBy share ONE definition (the W3 "never zoom out past the full-town frame" invariant).
+// handler + zoomBy share ONE definition (the "never zoom out past the full-town frame" invariant).
 function clampZoom(z, base) {
   const b = base || 1;
   return Phaser.Math.Clamp(z, b, b * 3);

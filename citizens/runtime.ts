@@ -1,7 +1,7 @@
 // Citizen-side runtime safety — the fleet OBEYS the sim's run-state governor (the other half of the
-// INC-2026-06-18 fix). The sim can pause / stop / budget-cap the world; here each citizen actually checks
+// runaway-loop fix). The sim can pause / stop / budget-cap the world; here each citizen actually checks
 // BEFORE it spends a single token, reports its usage to the meter + ceiling, and backs off on errors so a
-// rate-limit can never become the 8s-retry storm that pinned the account in the incident.
+// rate-limit can never become an 8s-retry error storm.
 
 const SIM = process.env.SIM_URL ?? "http://localhost:4042";
 
@@ -12,11 +12,11 @@ export type CitizenDirective = {
   model: string; // the model this citizen should use this tick (per-agent, hot-swappable from the roster)
   remainingMs: number | null;
   gameMinutes: number; // the sim game clock — feeds Mind.nowGameMin() so memories are stamped in game-time
-  enabledIds: string[]; // A3: ids of all ENABLED citizens — so the dialogue driver only initiates vs a live partner (D17)
+  enabledIds: string[]; // A3: ids of all ENABLED citizens — so the dialogue driver only initiates vs a live partner
 };
 
 // Read the governor. FAIL SAFE: if the sim is unreachable we return non-runnable — no governor means no
-// spend (the opposite of the incident, where the loop ran regardless).
+// spend (the opposite of an unbounded loop that runs regardless).
 export async function fetchDirective(id: string, fallbackModel: string): Promise<CitizenDirective> {
   try {
     const res = await fetch(`${SIM}/run-state`);
@@ -46,7 +46,7 @@ export async function fetchDirective(id: string, fallbackModel: string): Promise
 
 export type UsageSample = { apiEquivUsd: number; tokensIn: number; tokensOut: number; cacheWrite: number; cacheRead: number };
 
-// Pull the API-equiv cost + token usage out of the SDK's final `result` message. On a subscription the cost is
+// Pull the API-equiv cost + token usage out of the SDK's final `result` message. With a Claude login the cost is
 // NOTIONAL (api-equivalent), with an API key it is the real spend. Either way it is what the burn meter tracks.
 export function extractUsage(msg: unknown): UsageSample | null {
   const m = msg as { type?: string; total_cost_usd?: number; usage?: Record<string, number> } | null;
@@ -62,7 +62,7 @@ export function extractUsage(msg: unknown): UsageSample | null {
 }
 
 // Report a tick's usage to the sim (feeds the GUI token meter + the fleet budget ceiling). Best-effort.
-// D32/H15: optional per-tick latency brackets ride along ({sdk: ACT-turn ms, sim: renderTick ms, total:
+// H15: optional per-tick latency brackets ride along ({sdk: ACT-turn ms, sim: renderTick ms, total:
 // whole-tick ms}) so per-tick latency lands on the flight tape; the sim ignores unknown fields today.
 export type LatencySample = { sdk: number; sim: number; total: number };
 export async function reportUsage(id: string, tick: number, usage: UsageSample, latencyMs?: LatencySample): Promise<void> {

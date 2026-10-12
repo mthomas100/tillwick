@@ -5,7 +5,7 @@
 // The SIM owns positions + interior presence (single world-authority); it calls these helpers with the geometry
 // it already has. We only do the MATH: given a speaker, the candidate listeners, and where everyone is (world
 // tiles + interior-local coords), return who is close enough to hear. The sim fans the gist out to that audience
-// and surfaces it per-listener via /perceive `overheard`; behaviorist folds it into the listener's memory.
+// and surfaces it per-listener via /perceive `overheard`; perception folds it into the listener's memory.
 //
 // TWO REGIMES (the load-bearing decision):
 //   • INSIDE an interior: earshot is computed on INTERIOR-LOCAL coords (occupant.x,y), NOT world tiles. Every
@@ -46,7 +46,7 @@ export type AgentLoc = {
 };
 
 // ---- SHARED RECORD CONTRACTS (one source of truth for the sim ⊳ perception/world-tools ⊳ verify gate) -------
-// The sim FILLS these (it has positions + presence + the dialogue/say payloads); behaviorist's perception.ts +
+// The sim FILLS these (it has positions + presence + the dialogue/say payloads); perception.ts +
 // world-tools.ts READ them off /perceive; the verify gate asserts their shape. Defining them here keeps the
 // three consumers from drifting (the kind of drift that silently broke `consume` once — see roleToolNames).
 // earshot.ts itself only computes the AUDIENCE (earshotAudience); the sim builds the record around each listener.
@@ -63,16 +63,16 @@ export type OverheardRecord = {
   atGameMin: number;    // absolute game-minutes when it happened
   kind: "say" | "dialogue";
   at?: string;          // the speaker's sublocation/place id, when inside (for "…at the <label>")
-  // INFORMATION-DIFFUSION flag (behaviorist's Q2 refinement): true when the overheard content carries a
-  // diffusable rumor — a sale/shortage/event (DialogueSummary.mentionedBelief, distilled FREE). behaviorist
+  // INFORMATION-DIFFUSION flag: true when the overheard content carries a
+  // diffusable rumor — a sale/shortage/event (DialogueSummary.mentionedBelief, distilled FREE). Perception
   // bumps the resulting memory's importance 5→6 when set, so overheard rumor COMPETES in retrieval (the
   // paper-style info-diffusion mechanic, M4-adjacent). The sim passes summary.mentionedBelief straight through
   // on the dialogue fan; undefined/absent for a plain say or non-belief chatter. Only ever true on kind:"dialogue".
   mentionedBelief?: boolean;
 };
 
-/** A presence-DELTA the perceiver senses near them: someone entered/left/sat/stood/moved (operator extension,
- *  scenewright-confirmed: "X got up · X left · X entered · X moved to the workbench / sat at the counter"). The
+/** A presence-DELTA the perceiver senses near them: someone entered/left/sat/stood/moved (an extension,
+ *  e.g. "X got up · X left · X entered · X moved to the workbench / sat at the counter"). The
  *  sim computes these by DIFFING the occupant set it already broadcasts on {type:"interior"} (+ town enter/leave)
  *  and scopes them to each perceiver with the SAME earshotAudience(). Ambient context, lower importance than
  *  overheard. Verb meanings (so the sim emits the right one off the presence diff):
@@ -80,11 +80,11 @@ export type OverheardRecord = {
  *    • "left"    — left the building entirely (interior presence lost).
  *    • "sat"     — took a SEAT/table sub-location (go_inside to a table/seat).
  *    • "stood"   — got up FROM a seat but is still in the room (sublocationId cleared / moved off a seat) — the
- *                  operator's "X got up", distinct from "left" the whole place.
+ *                  "X got up", distinct from "left" the whole place.
  *    • "moved"   — moved to a non-seat sub-location (station/desk/stage/shelf, i.e. go_inside elsewhere).
- *    • "approached" — STREET approach (town-alive A4): someone out on a lane just converged into earshot range
+ *    • "approached" — STREET approach: someone out on a lane just converged into earshot range
  *                  of the listener (crossed INTO EARSHOT_OUTSIDE_TILES this tick). The street analogue of the
- *                  interior presence-deltas — the "X is coming your way" cue Pillar III's street-notice needs.
+ *                  interior presence-deltas — the "X is coming your way" street-notice cue.
  *                  Emitted per DIRECTION (A approached B ⇒ listener B; B approached A ⇒ listener A). */
 export type NearbyEventVerb = "entered" | "left" | "sat" | "stood" | "moved" | "approached";
 export type NearbyEventRecord = {
@@ -103,7 +103,7 @@ export type PresenceDelta = { actor: string; verb: NearbyEventVerb; place: strin
 export type OccupantSnapshot = { id: string; sublocationId?: string };
 
 /**
- * diffPresence — the PURE presence-delta computation scenewright asked for. Given a building's PRIOR and NEXT
+ * diffPresence — the PURE presence-delta computation the interior scene uses. Given a building's PRIOR and NEXT
  * occupant snapshots (the sim already broadcasts the occupant set on every {type:"interior"} event — enter/leave/
  * go_inside all re-broadcast it), return the human-meaningful deltas: who ENTERED, who LEFT, who SAT at a table,
  * who STOOD up from a seat, who MOVED to another spot. The sim diffs the broadcast vs the prior snapshot, then
@@ -212,7 +212,7 @@ export function earshotAudience(
   return out;
 }
 
-// ---- STREET APPROACH (town-alive A4: the street was presence-delta blind) --------------------------------
+// ---- STREET APPROACH (the street was presence-delta blind) --------------------------------
 
 /** One street convergence: `a` and `b` (both out on a lane) came within earshot of each other this tick.
  *  `dist` is their new world-Chebyshev distance. Symmetric — the sim fans one "approached" nearbyEvent in

@@ -9,7 +9,7 @@
  * Load LAST in index.html (after the inline <style> and after tx-overlay.js /
  * inspector.js inject their own runtime <style>) so these rules win the cascade.
  *
- * THE LAYOUT (W3 UX polish — no overlaps):
+ * THE LAYOUT (no overlaps):
  *
  *   +-------------------------------------------+-------------------+
  *   |                                            |   #feed           |

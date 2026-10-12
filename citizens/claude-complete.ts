@@ -38,7 +38,7 @@ export function makeClaudeComplete(defaultModel = "claude-haiku-4-5-20251001", o
           if (typeof msg.result === "string" && !text) text = msg.result; // fallback to the final result text
         }
       }
-      // W2b metering: surface this call's API-equiv cost so the citizen reports ALL cognition burn (reflection,
+      // Metering: surface this call's API-equiv cost so the citizen reports ALL cognition burn (reflection,
       // summary, importance, dialogue) to the fleet budget ceiling — not just the ACT turn. Never affects the text.
       if (onUsage && resultMsg) { const u = extractUsage(resultMsg); if (u) onUsage(u); }
       return text.trim();

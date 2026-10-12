@@ -1,4 +1,4 @@
-// SOCIAL STEP (town-alive B1/B2) — the ONE call citizen.ts makes after its ACT turn. Encapsulates the whole
+// SOCIAL STEP — the ONE call citizen.ts makes after its ACT turn. Encapsulates the whole
 // social pass that used to live inline in citizen.ts's try{} block (blocks 1-4), upgraded end-to-end:
 //
 //   1. IGNITION (citizens/ignition.ts): reply-mode (an inbound say from someone still beside me → I host a
@@ -12,7 +12,7 @@
 //      (RelationshipGraph.assessOpinion — drift allowed, tiny metered call, degrade-keeps-prior).
 //   4. GOSSIP BOOKKEEPING + THE BEAT: the teller marks the item shared and POSTs the `gossip-passed` event
 //      {to, itemId, topic, gist, origin, chain} — the tape-visible diffusion record (paper's information
-//      diffusion made mechanical; flightrecorder's schema). The hearer ingests the wire (chain preserved),
+//      diffusion made mechanical; flight-tape schema). The hearer ingests the wire (chain preserved),
 //      and a conversed summary with mentionedBelief but NO seeded wire becomes a tracked heard-belief
 //      attributed to the partner — organically-arising rumors enter the diffusion graph too.
 //   5. The existing partner-side dialogue ingest, trade tap, co-presence tap, and relationship→reflection
@@ -22,8 +22,8 @@
 // (dialogue record, /event) are injectable so the self-test runs with ZERO tokens and no sim. Degrade-don't-
 // die: any hiccup shrinks the step, never throws into the tick.
 //
-// OWNERSHIP: this file + ignition.ts + gossip.ts are socialweaver's; citizen.ts (lifegiver's) constructs one
-// SocialStep beside its RelationshipGraph and calls run() once per tick — see the hook-spec in the audit.
+// WIRING: this file + ignition.ts + gossip.ts form the social layer; citizen.ts constructs one
+// SocialStep beside its RelationshipGraph and calls run() once per tick.
 
 import { Mind } from "../cognition/mind.js";
 import { RelationshipGraph, type DialogueSummaryLike } from "../cognition/relationships.js";
@@ -60,7 +60,7 @@ export type SocialStepOpts = {
 
 /** What run() needs from THIS tick: the PRE-ACT perception + the roster + the metered Complete.
  *  `tickId` (the citizen's tick counter) rides every beat so the tape can join beats to the tick's trace
- *  line (flightrecorder's shared-tickId vocabulary, D32). */
+ *  line (the flight tape's shared-tickId vocabulary). */
 export type SocialTickInput = {
   perceived: Record<string, unknown>;
   enabledIds: string[];
@@ -121,9 +121,9 @@ export class SocialStep {
   }
 
   /**
-   * VOLITION (Pillar III "walks up to them"): who do I WANT to go tell something? The freshest gossip item
+   * VOLITION ("walks up to them"): who do I WANT to go tell something? The freshest gossip item
    * I haven't told anyone, paired with my most familiar relation who isn't already in its provenance.
-   * Returns a prompt-ready line for the ACT prompt's volition branch (lifegiver hook-spec) or null. Pure.
+   * Returns a prompt-ready line for the ACT prompt's volition branch or null. Pure.
    */
   volitionTarget(): { targetId: string; topic: string; line: string } | null {
     const item = this.gossip.freshestUnshared();
@@ -162,7 +162,7 @@ export class SocialStep {
       ...(this.o.hostWindowGameMin !== undefined ? { hostWindowGameMin: this.o.hostWindowGameMin } : {}),
     });
 
-    // D32 — the ignition beat, EVERY evaluation, fired or not: the tape names the suppressor per candidate
+    // the ignition beat, EVERY evaluation, fired or not: the tape names the suppressor per candidate
     // (cooldown/capped/disabled/not-host…), so "why didn't X and Y talk this tick" is always answerable.
     // Fire-and-forget; never blocks the step.
     void this.emit("ignition", {
@@ -337,7 +337,7 @@ function strArray(x: unknown): string[] {
 }
 
 // ---- runnable stub self-test (ZERO tokens) ---------------------------------------------------------------
-// `tsx citizens/social-step.ts` proves the town-alive acceptance bullets END-TO-END at the social-step level
+// `tsx citizens/social-step.ts` proves the acceptance bullets END-TO-END at the social-step level
 // with stubComplete + injected recorders (no sim, no model):
 //   • ignition → a REAL conversation on a synthetic co-location, on the host's first tick;
 //   • heardRecently → a reply-mode conversation (election bypassed, once per say);
@@ -406,12 +406,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     });
     assert(t1.drove?.partner === "ben" && t1.drove.outcome === "conversed", "ada hosts and converses with ben on her first co-located tick");
     assert(recorded.length === 1 && recorded[0].gossip?.chain.join(",") === "ada", `dialogue record carries gossip chain [ada] (got ${JSON.stringify(recorded[0]?.gossip)})`);
-    assert(typeof recorded[0].ts === "string" && recorded[0].ts.includes("T"), "flightrecorder ask: the dialogue record carries a wall-clock ts");
+    assert(typeof recorded[0].ts === "string" && recorded[0].ts.includes("T"), "the dialogue record carries a wall-clock ts");
     assert(t1.gossipPassed === 1, "one gossip-passed beat");
-    // D32: the ignition beat fires WITH the evaluation, before the gossip beat, carrying the tick + ledger.
+    // the ignition beat fires WITH the evaluation, before the gossip beat, carrying the tick + ledger.
     const ign1 = beats.find((b) => b.kind === "ignition");
-    assert(!!ign1 && ign1.payload.decision === "fired" && ign1.payload.partner === "ben" && ign1.payload.tick === 1, "D32: fired ignition beat with tickId");
-    assert(Array.isArray(ign1!.payload.candidates) && (ign1!.payload.candidates as Array<{ id: string; status: string }>)[0].status === "chosen", "D32: the beat carries the candidate ledger");
+    assert(!!ign1 && ign1.payload.decision === "fired" && ign1.payload.partner === "ben" && ign1.payload.tick === 1, "fired ignition beat with tickId");
+    assert(Array.isArray(ign1!.payload.candidates) && (ign1!.payload.candidates as Array<{ id: string; status: string }>)[0].status === "chosen", "the beat carries the candidate ledger");
     const gp1 = beats.find((b) => b.kind === "gossip-passed");
     assert(!!gp1 && (gp1.payload.chain as string[]).join(",") === "ada" && gp1.payload.to === "ben", "beat: ada→ben, chain [ada]");
     assert(ada.graph.relationWith("ben")?.opinion?.stance === "like", "ada's opinion note on ben updated after the talk");
@@ -431,10 +431,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const beatsBefore = beats.length;
     const t2b = await ben.step.run({ perceived: { adjacentTo: ["ada"] }, enabledIds: ["ada", "ben", "cara"], complete, tickId: 7 });
     assert(!t2b.drove, "cooldown: ben does not immediately restart with ada");
-    // …and D32 says the SILENT tick still explains itself on the tape.
+    // …and says the SILENT tick still explains itself on the tape.
     const silent = beats.slice(beatsBefore).find((b) => b.kind === "ignition" && b.actor === "ben");
-    assert(!!silent && silent.payload.decision === "suppressed" && silent.payload.reason === "cooldown-or-capped", "D32: a silent tick emits a suppressed ignition beat");
-    assert((silent!.payload.candidates as Array<{ id: string; status: string }>).some((c) => c.id === "ada" && c.status === "cooldown"), "D32: the silent beat names ada's cooldown");
+    assert(!!silent && silent.payload.decision === "suppressed" && silent.payload.reason === "cooldown-or-capped", "a silent tick emits a suppressed ignition beat");
+    assert((silent!.payload.candidates as Array<{ id: string; status: string }>).some((c) => c.id === "ada" && c.status === "cooldown"), "the silent beat names ada's cooldown");
 
     // --- TICK 3 (ben's): ben meets cara in a window where BEN hosts → the rumor travels on ---
     let w2 = Math.floor(gameMin / 60) + 1;

@@ -1,8 +1,8 @@
 <!doctype html>
 <!--
-  renderer/phaser/index.dev.html — STANDALONE validation harness for the Wave-3 Phaser engine.
-  Lets me prove the engine draws + moves WITHOUT editing the hot file renderer/index.html (lead owns that).
-  It mirrors exactly what the index.html hook will do (see the HOOKS SPEC in my report): load phaser.min.js,
+  renderer/phaser/index.dev.html — STANDALONE validation harness for the Phaser engine.
+  Proves the engine draws + moves without the rest of the app in renderer/index.html.
+  It mirrors what index.html does: load phaser.min.js,
   then the ESM entry town-renderer.js, with the same #left/#hud/#feed DOM the real page has.
   Serve from the sim (it static-serves renderer/) and open:  http://localhost:4042/phaser/index.dev.html
   Add ?art=placeholder|limezu|ninja to switch art packs.

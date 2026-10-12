@@ -5,7 +5,7 @@
 // DRAGGABLE by its header and PERSISTENT (only its own ✕ closes it). DOM hooks are namespaced .inspector-* /
 // classes (not ids — ids would collide across cards) so they never clash with the map, the feed (#feed), or #tx-*.
 //
-// Data sources (built by the lead):
+// Data sources:
 //   GET /agent/:id            -> { id,address,color,x,y,usdc,spent,earned, inventory:[{item,price_usdc,shop,counterparty,txHash,explorer,ts}] }
 //   WS  {type:"world", world} -> world.tile (px/tile) + world.buildings[] (shops carry type:"shop", goods:[{id,price}])
 //   WS  {type:"tick",  agents}-> [{id,x,y,color,moving,adjacentTo}] live positions for click hit-testing
@@ -238,8 +238,8 @@
           `title="open ${esc(data.id)}'s live logs + mind (memory, reflections, plan, trace) in iTerm">` +
           `<span class="inspector-btn-ico">▦</span> inspect in iTerm</button>` +
       `</div>` +
-      // B5/C-panel: tabbed content region — ACTIVITY (default) | INVENTORY. The operator wants the live
-      // thought→tool→result stream FIRST, so ACTIVITY opens active (its `on` pill + un-hidden pane) and its poll
+      // B5/C-panel: tabbed content region — ACTIVITY (default) | INVENTORY. The live
+      // thought→tool→result stream comes FIRST, so ACTIVITY opens active (its `on` pill + un-hidden pane) and its poll
       // starts immediately when the card opens; INVENTORY starts hidden. The iTerm button above is the heavyweight
       // tmux view; this tab is the lightweight in-card version. (openAgent calls switchTab(card,"activity") on open.)
       `<div class="inspector-tabs" role="tablist">` +
@@ -492,7 +492,7 @@
   // Fetch THIS card's recent activity once and paint it newest-first. `seq` orders responses (a slower earlier
   // fetch must NOT overwrite a newer one) WITHOUT being tied to the poll's liveness — the interval keeps running
   // regardless, so the stream stays live (the old code killed the whole interval on any token bump → the card
-  // froze at a stale snapshot, the operator-flagged bug). Only paints if the card is still open + still on activity.
+  // froze at a stale snapshot). Only paints if the card is still open + still on activity.
   async function loadActivity(card, seq) {
     if (!card || !card.el || !panels.has(card.key)) return;
     const listEl = card.el.querySelector(".inspector-activity");
@@ -514,7 +514,7 @@
   }
   function stopActivityPoll(card) { if (card && card.activityTimer) { clearInterval(card.activityTimer); card.activityTimer = 0; } }
   // Start (or restart) THIS card's CONTINUOUS live-stream poll. Loads immediately, then refreshes every 2s WHILE
-  // the card is open AND its activity tab is showing — a true live mind-feed that stays current (operator ask).
+  // the card is open AND its activity tab is showing — a true live mind-feed that stays current.
   // The interval's liveness depends ONLY on "open + on activity tab"; response ordering is handled by `_actSeq`
   // inside loadActivity, so a slow fetch can never kill the poll (the prior bug that froze the card at a snapshot).
   function startActivityPoll(card) {
@@ -872,7 +872,7 @@
     if (typeof window !== "undefined" && window.__townView === "interior") return;
     if (!world || !world.tile) return;
     const rect = c.getBoundingClientRect();
-    // Prefer the renderer-published, camera-aware transform (Phaser getWorldPoint): the Wave-3 camera zooms/pans
+    // Prefer the renderer-published, camera-aware transform (Phaser getWorldPoint): the camera zooms/pans
     // to frame the town (and the user can wheel-zoom), so canvas-px != world-px. window.__townScreenToTile maps a
     // canvas-relative point to the EXACT world pixel under the cursor at any zoom/scroll. Fall back to the legacy
     // 1:1 math (canvas-px == world-px) only if the renderer hasn't published the helper (e.g. the old flat-canvas
@@ -914,7 +914,7 @@
     // building footprint here (not just shops) so a home/civic with an interior is enterable too.
     const bHit = buildingAt(world.buildings, px / world.tile, py / world.tile);
     if (bHit && bHit.interior && typeof window !== "undefined" && window.__townRenderer && typeof window.__townRenderer.enterInterior === "function") {
-      // KEEP open citizen cards across the scene-switch (lead's ruling): the operator's persistence intent is
+      // KEEP open citizen cards across the scene-switch : the persistence rule is
       // "stays until ✕ only", so entering an interior must NOT auto-close cards. They're DOM overlays that survive
       // the town↔interior switch — the operator can drag or ✕ them. (Only the transient roster picker dismisses.)
       hideRoster(); window.__townRenderer.enterInterior(bHit.id); return;

@@ -1,4 +1,4 @@
-// renderer/phaser/engine-test.mjs — ZERO-BROWSER engine validation (the lead's "mock-world static check").
+// renderer/phaser/engine-test.mjs — ZERO-BROWSER engine validation (a mock-world static check).
 //   node renderer/phaser/engine-test.mjs
 // Provides a minimal Phaser test double + window/document shims, then drives the REAL TownScene + asset packs
 // against the REAL sim/world.json and asserts the engine's behavior:
@@ -213,7 +213,7 @@ scene.onEvent({ type: "event", kind: "status", actor: "a2", payload: { text: "bu
 check(/🎸.*busking/.test(bubbleText(scene, "a2")), `status without emoji → verb→emoji fallback (busk→🎸)`);
 scene.onEvent({ type: "event", kind: "status", actor: "a1", payload: { verb: "tinker" } });
 check(/🛠/.test(bubbleText(scene, "a1")), `unknown verb → 🛠 fallback emoji`);
-// behaviorist's CONTRACT shape: emoji BAKED INTO text ({text:"🥖 baking…", verb:"bake", at:<bldg>}) — must NOT
+// the sim's CONTRACT shape: emoji BAKED INTO text ({text:"🥖 baking…", verb:"bake", at:<bldg>}) — must NOT
 // double-prepend (would render "🥖 🥖 baking…"). The bubble shows exactly one leading emoji.
 scene.onEvent({ type: "event", kind: "status", actor: "a2", payload: { text: "🥖 baking…", verb: "bake", at: "bakery" } });
 check(bubbleText(scene, "a2") === "🥖 baking…", `emoji-in-text payload renders ONCE (no double emoji): "${bubbleText(scene, "a2")}"`);
@@ -222,7 +222,7 @@ check(bubbleText(scene, "a2") === "🥖 baking…", `emoji-in-text payload rende
 section("🌗 A3-3 — day/night tint ramps off the game clock");
 check(!!scene._dayNight, `a day/night overlay rectangle exists`);
 check(scene._dayNight.depth >= 99000 && scene._dayNight._interactive === false, `overlay is high-depth + NON-interactive (can't eat clicks)`);
-// REGRESSION (operator-flagged "translucent square"): the tint must cover the FULL WORLD at scrollFactor 1, NOT
+// REGRESSION (the "translucent square" bug): the tint must cover the FULL WORLD at scrollFactor 1, NOT
 // the camera viewport (a scrollFactor-0 canvas-sized rect shrinks by the fit-zoom → covered only the top-left).
 {
   const T = scene.TILE, worldW = scene.world.width * T, worldH = scene.world.height * T;
@@ -267,7 +267,7 @@ check(!scene._occBadges.get(occHomeB.id), `badge is torn down when the building 
 // ---------------------------------------------------------------------------
 section("🏠 B2 — interior scene builds from B1-shaped data (scaffold; real-data/B3-art-swappable)");
 const interior = new InteriorScene();
-// stub matches behaviorist's REAL world.json interior shape (theme/tile/spawnInside/sublocations{label,kind,station,seats})
+// stub matches the REAL world.json interior shape (theme/tile/spawnInside/sublocations{label,kind,station,seats})
 const stub = stubInterior("bakery");
 check(stub.theme === "kitchen" && stub.tile === 32 && stub.w > 0 && stub.h > 0, `stubInterior('bakery') → kitchen, tile 32, size ${stub.w}x${stub.h}`);
 check(Array.isArray(stub.sublocations) && stub.sublocations.some((s) => s.kind === "counter") && stub.sublocations.some((s) => s.station), `kitchen has a counter + a station sub-location (B1 shape)`);
@@ -416,7 +416,7 @@ check(bakerSprite && bakerSprite.sprite._tall === true, `a LimeZu character rend
 // ---------------------------------------------------------------------------
 // C-panel — multi-panel inspector invariants (static source check). The inspector's DOM half is a browser-only
 // IIFE (its CommonJS export is inert under "type":"module"), so its live behavior is gated by Playwright, not
-// here. These cheap textual tripwires guard the FOUR operator-flagged behaviors against silent regression:
+// here. These cheap textual tripwires guard FOUR card behaviors against silent regression:
 //   (1) MANY cards at once  (2) DRAGGABLE by the header  (3) PERSISTENT (only ✕ closes)  (4) ACTIVITY default.
 section("C-panel — multi-panel inspector (static invariants; Playwright is the live gate)");
 const inspectorSrc = readFileSync(join(HERE, "..", "inspector.js"), "utf8");
@@ -450,5 +450,5 @@ check(/enterInterior\(bHit\.id\)/.test(inspectorSrc) && /openShop\(shopHit/.test
   `the 3 canvas-click paths preserved (openAgent / openShop / enterInterior)`);
 
 // ---------------------------------------------------------------------------
-console.log(`\n${failures === 0 ? "✅ ALL GREEN" : `❌ ${failures} FAILURE(S)`} — W3-phaser engine test`);
+console.log(`\n${failures === 0 ? "✅ ALL GREEN" : `❌ ${failures} FAILURE(S)`} — Phaser engine test`);
 process.exit(failures === 0 ? 0 : 1);

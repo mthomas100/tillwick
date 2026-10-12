@@ -52,13 +52,13 @@ try {
   gm += 40; tape.leave("baker", { x: 40, y: 8, building: "bakery" }, "bakery");
 
   // smith: says something with NOBODY in earshot → say-unheard; the fan RECORDS who was excluded and why
-  // (D32 layer 5: silence explained); then a status whose position CONTRADICTS it
+  // (layer 5: silence explained); then a status whose position CONTRADICTS it
   gm += 3; tape.event({ actor: "smith", kind: "say", payload: { to: "", text: "anyone here?", turn: 7 } }, { x: 50, y: 8, building: "smithy" });
   tape.earshot("smith", { x: 50, y: 8, building: "smithy" }, { kind: "say", audience: [], excluded: [{ id: "baker", why: "walls (inside bakery)" }, { id: "barista", why: "walls (inside cafe)" }] });
   gm += 3; tape.event({ actor: "smith", kind: "status", payload: { text: "forging…", emoji: "🔨", verb: "forge", at: "smithy" } }, { x: 50, y: 11, building: "home-smith" });
   ev("smith", "status", { text: "forging…", emoji: "🔨", verb: "forge", at: "smithy" });
 
-  // D32 beats: a suppression (evaluated, did NOT fire, reason), a FAILED act (the fallthrough trap made
+  // beats: a suppression (evaluated, did NOT fire, reason), a FAILED act (the fallthrough trap made
   // loud), and an EMPTY affordance menu (the stuck precursor) — all tid-stamped to smith's tick 7
   gm += 2; tape.event({ actor: "smith", kind: "suppressed", payload: { trigger: "dialogue", target: "baker", reason: "cooldown 45gm remaining", tick: 7 } }, { x: 50, y: 8, building: "smithy" });
   tape.actFail("smith", { x: 50, y: 8, building: "smithy" }, { action: "juggle", reason: "unknown action (fallthrough)", tick: 7 });
@@ -107,7 +107,7 @@ try {
   const interiorOut = execFileSync("npx", ["tsx", "scripts/replay-run.ts", "--data", dataDir, "--run", "latest", "--interior", "cafe"], { encoding: "utf8", env: { ...process.env, NO_COLOR: "1" }, timeout: 120_000 });
   assert(/1=\(\d+,\d+\) (barista|baker)/.test(interiorOut), "interior floorplan places occupants from tape state");
 
-  // ---- 4. D32: the causal join key + the why-not query + the new detectors ----
+  // ---- 4. the causal join key + the why-not query + the new detectors ----
   const { readFileSync } = await import("node:fs");
   const rawTape = readFileSync(join(dataDir, "runs", runId, "tape.jsonl"), "utf8");
   assert(rawTape.includes('"tid":"smith:7"'), "tid causal join key stamped from the payload's tick/turn field");
@@ -119,7 +119,7 @@ try {
   const whyBaker = execFileSync("npx", ["tsx", "scripts/replay-run.ts", "--data", dataDir, "--run", "latest", "--why", "baker"], { encoding: "utf8", env: { ...process.env, NO_COLOR: "1" }, timeout: 120_000 });
   assert(whyBaker.includes("did not hear smith's say — walls (inside bakery)"), "--why shows earshot EXCLUSION with the reason (silence explained)");
 
-  console.log("\n✅ verify-flight-tape: FULL PIPELINE GREEN (tape → manifest slicing → M7/M9 → replay → detectors → D32 why-not)");
+  console.log("\n✅ verify-flight-tape: FULL PIPELINE GREEN (tape → manifest slicing → M7/M9 → replay → detectors → why-not)");
 } finally {
   rmSync(dir, { recursive: true, force: true });
 }

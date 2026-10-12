@@ -3,11 +3,11 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import type { ScoredMemory } from "./retrieval.js";
 
-// STRUCTURED PER-TICK TRACE (OBSERVABILITY.md §7) — one append-only JSON line per citizen per tick, written
+// STRUCTURED PER-TICK TRACE (docs/design/observability.md §7) — one append-only JSON line per citizen per tick, written
 // by the citizen loop right after reportUsage. It makes the paper's decision chain DURABLE + greppable:
 // the retrieved working-set + WHY each memory surfaced (recency/importance/relevance subscores, §4.1) that
-// today's trace-decision.ts can only RECONSTRUCT, plus a `result` health line so a silent no-op tick (the
-// INC-2026-06-18 zombie loop logged "✓ success cost_usd=0" for ~1,300 ticks/agent) is one jq away:
+// today's trace-decision.ts can only RECONSTRUCT, plus a `result` health line so a silent no-op tick (an
+// early runaway loop logged "✓ success cost_usd=0" for ~1,300 ticks/agent) is one jq away:
 //     jq 'select(.result.cost_usd==0)' sim/data/traces/*.jsonl | wc -l
 //
 // SAME GRAIN AS THE REST OF THE SYSTEM: plain JSONL, one writer-per-process (each citizen owns its own
@@ -41,7 +41,7 @@ export type TraceAction = { tool: string; input: unknown };
 // The per-tick health/outcome summary (the §7 `result` line) — the part that screams during a zombie loop.
 export type TraceResult = {
   subtype: string; // SDK result subtype ("success" | "error_max_turns" | …)
-  cost_usd: number; // notional on a subscription, but 0 is the zombie-loop tell; this is the WHOLE-tick metered burn
+  cost_usd: number; // notional with a Claude login, but 0 is the zombie-loop tell; this is the WHOLE-tick metered burn
   num_turns: number;
   error: string | null;
 };

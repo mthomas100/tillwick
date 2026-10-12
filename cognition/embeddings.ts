@@ -2,7 +2,7 @@
 // "relevance = cosine of local embeddings"; paper §4.1, Fig 6). Runs a small sentence model entirely
 // on-box via transformers.js: NO API key, NO token cost, NO network at inference time.
 //
-// WHY LOCAL (INC-2026-06-18): retrieval runs for every memory on every tick, so its semantic relevance
+// WHY LOCAL: retrieval runs for every memory on every tick, so its semantic relevance
 // is computed here, for free, on the box, instead of through any hosted embedding API.
 //
 // Model: Xenova/all-MiniLM-L6-v2 — 384-dim, mean-pooled + L2-normalized sentence embeddings (~97MB

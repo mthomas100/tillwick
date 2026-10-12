@@ -185,7 +185,7 @@ function inspectOne(id: string): void {
   // RELATIONSHIPS (the social graph)
   console.log(h(`RELATIONSHIPS — ${rels.length} edge(s)`));
   console.log(`  ${C.dim}sim/data/relationships/${id}.jsonl — familiarity, dialogues, co-presence, trade volume, topics${C.off}`);
-  if (rels.length === 0) console.log(`  ${C.dim}(none recorded — W2b walk-up-and-talk under-fired this run; see OBSERVABILITY.md)${C.off}`);
+  if (rels.length === 0) console.log(`  ${C.dim}(none recorded — walk-up-and-talk under-fired this run; see docs/design/observability.md §5)${C.off}`);
   for (const e of rels.sort((a, b) => b.familiarity - a.familiarity)) {
     console.log(
       `  ${C.mag}↔ ${e.other}${C.off}  familiarity ${e.familiarity.toFixed(2)} · dialogues ${e.dialogues} · co-present ${e.coPresences} · trades ${e.tradesAsBuyer}b/${e.tradesAsSeller}s` +

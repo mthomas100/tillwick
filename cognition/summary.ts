@@ -8,8 +8,8 @@ import { type Complete, stubComplete } from "./llm.js";
 // occupation, and recent self-assessment, summarizing each retrieved set with the LLM, and concatenating
 // the three summaries under a header line of name (+ age + innate traits).
 //
-// WHY CACHE IT (Appendix A + INC-2026-06-18 efficiency win): regenerating this prefix every tick is wasted
-// work — and in the post-mortem the leak was paying cache-creation every tick. The summary
+// WHY CACHE IT (Appendix A): regenerating this prefix every tick is wasted
+// work — an early build paid cache-creation every tick. The summary
 // changes slowly (the agent's core characteristics don't churn minute-to-minute), so we build it once and
 // REUSE it for many prompts, refreshing only periodically (needsRefresh). A stable prefix is also exactly
 // what cache-reuse wants: identical leading bytes across calls → the model can reuse the cached prefix.

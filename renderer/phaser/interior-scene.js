@@ -1,18 +1,17 @@
 // renderer/phaser/interior-scene.js — B2: the INTERIOR view. Click a building in the town → this scene becomes
-// the full view of the app: the inside of that building, rendered with LimeZu interior art (decorator's B3 pack),
-// its named sub-locations/furniture (behaviorist's B1 data), the agents who are inside placed at their interior
+// the full view of the app: the inside of that building, rendered with LimeZu interior art (the interior art pack),
+// its named sub-locations/furniture (from world.json), the agents who are inside placed at their interior
 // coords, a minimap, and a clear EXIT control back to the town.
 //
 // SCAFFOLD PHASE (this file, now): a STANDALONE scene driven by two injected providers, each with a STUB so the
 // shell renders today with ZERO dependency on B1/B3:
 //   - dataProvider.getInterior(buildingId) -> InteriorData   (B1 — stubbed here as a believable layout)
 //   - artPack (B3 interior pack)                              (B3 — stubbed here as drawn colored rects)
-// When B1's real interior feed + B3's real art land, the lead swaps the stubs for the real providers; the scene
-// code does not change (same contract). The town→interior SCENE SWITCH + the __town* coexistence seam are a
-// SEPARATE, later step (gated on the lead's ruling) — this file deliberately does NOT touch town-scene or the
-// shared globals, so it's safe to land + unit-test in isolation.
+// The real interior feed and art plug in through the same providers; the scene code does not change (same
+// contract). The town→interior SCENE SWITCH + the __town* coexistence seam live elsewhere — this file
+// deliberately does NOT touch town-scene or the shared globals, so it can be unit-tested in isolation.
 //
-// ── INTERIOR DATA CONTRACT (behaviorist's B1, landed in world.json — this is the REAL shape) ────────────────
+// ── INTERIOR DATA CONTRACT (as in world.json — this is the REAL shape) ────────────────
 // world.buildings[b].interior = {
 //   w, h,                               // interior size in INTERIOR tiles (own grid, origin 0,0)
 //   theme: "kitchen"|"grocery"|"workshop"|"classroom"|"bedroom"|"pub"|"living",  // floor/art hint
@@ -30,7 +29,7 @@ import { resolveAssetPack } from "./assets.js";
 const EASE = 0.2;
 
 // ── STUB interior (real B1 SHAPE) — for headless tests + a graceful fallback if a building lacks interior data.
-// Matches behaviorist's world.json shape exactly (theme/tile/spawnInside/sublocations{label,kind,station,seats})
+// Matches the world.json shape exactly (theme/tile/spawnInside/sublocations{label,kind,station,seats})
 // so swapping the real `world.buildings[b].interior` in needs ZERO scene change.
 function stubInterior(buildingId) {
   const id = String(buildingId || "room");
@@ -113,7 +112,7 @@ const FURNITURE = {
   bed: { fill: 0x3a4a6a, label: "▬" }, shelf: { fill: 0x474038, label: "▦" },
 };
 const SEAT_FILL = 0x4a4a52;
-// B1 `theme` → decorator's B3 floor MATERIAL (interiorFloor takes wood|wood-dark|tile|stone|carpet, not a theme).
+// `theme` → the art pack's floor MATERIAL (interiorFloor takes wood|wood-dark|tile|stone|carpet, not a theme).
 const THEME_TO_FLOOR = { kitchen: "tile", grocery: "tile", workshop: "stone", classroom: "wood", bedroom: "carpet", pub: "wood-dark", living: "carpet" };
 // B1 `theme` → a wall material (interiorWall takes plaster|wood|brick|tile).
 const THEME_TO_WALL = { kitchen: "tile", grocery: "plaster", workshop: "brick", classroom: "plaster", bedroom: "plaster", pub: "wood", living: "plaster" };
@@ -147,7 +146,7 @@ export class InteriorScene extends Phaser.Scene {
     if (!this._created || !this.data) return;
     const colorOf = (id) => { try { return (typeof window !== "undefined" && window.__townColors && window.__townColors[id]) || undefined; } catch { return undefined; } };
     // D-interior-social (a): DIFF the prev occupant set vs this push to classify each transition (mirrors
-    // interiorist's diffPresence verb rules, CLIENT-side, derived purely from the {type:"interior"} broadcast):
+    // sim/earshot.ts's diffPresence verb rules, CLIENT-side, derived purely from the {type:"interior"} broadcast):
     //   new id → entered · gone id → left · sublocationId none→spot / spot→other → sat/moved · spot→none → stood.
     // Each fires a one-shot visual CUE so the room reads as alive ("walks in, sits down, gets up, leaves").
     for (const o of occupants || []) {
@@ -276,7 +275,7 @@ export class InteriorScene extends Phaser.Scene {
     // HUD CAMERA: a dedicated second camera renders the chrome (header/EXIT/minimap) at a FIXED zoom 1 / scroll 0,
     // so it stays pinned to the screen regardless of the world camera's zoom/pan. (A bare setScrollFactor(0)
     // object is STILL scaled by the world camera's zoom — the interior frames at zoom ~1.4, so the chrome drifted
-    // off the top-left + scaled; the operator couldn't find EXIT. Same class as the day/night-tint zoom bug.)
+    // off the top-left + scaled; EXIT was hard to find. Same class as the day/night-tint zoom bug.)
     // The world (main) camera IGNORES the chrome; the HUD camera IGNORES the world content. Re-applied on rebuild.
     this._uiCam = this.cameras.add(0, 0, this.scale.gameSize.width || this.cameras.main.width, this.scale.gameSize.height || this.cameras.main.height);
     this._uiCam.setScroll(0, 0);
@@ -310,7 +309,7 @@ export class InteriorScene extends Phaser.Scene {
     for (const id of [...this.agentSprites.keys()]) this.destroyOccupant(id);
     // clear any stale table-talk markers from the prior room (D-interior-social b)
     if (this._tableTalk) { for (const [, m] of this._tableTalk) { try { m.container.destroy(); } catch {} if (m.timer && m.timer.remove) { try { m.timer.remove(false); } catch {} } } this._tableTalk.clear(); }
-    // floor: decorator's B3 floor tile (interiorFloor takes a MATERIAL — map theme→material), else a flat fill.
+    // floor: the art pack's floor tile (interiorFloor takes a MATERIAL — map theme→material), else a flat fill.
     // B3's interiorFloor ALWAYS returns a key (real crop or a generated flat tile), so prefer it when present.
     const floorKey = typeof this.artPack.interiorFloor === "function" ? this.artPack.interiorFloor(this, THEME_TO_FLOOR[d.theme] || "wood") : null;
     const intTileSrc = this.artPack.tileSizeInterior || this.artPack.tileSize || 16;
@@ -360,7 +359,7 @@ export class InteriorScene extends Phaser.Scene {
       sg.fillStyle(SEAT_FILL, 1); sg.fillRoundedRect(seat.x * T + T * 0.28, seat.y * T + T * 0.28, T * 0.44, T * 0.44, 4);
       this.furnitureNodes.push(sg);
     }
-    // B3 furniture: interiorObject(name) resolves a specific id (espresso-machine, bar-counter…) via decorator's
+    // B3 furniture: interiorObject(name) resolves a specific id (espresso-machine, bar-counter…) via the art pack's
     // alias table, else the B1 kind; returns null when there's no crop → we draw the placeholder rect below.
     // The interior crops are on a 48px grid; contain-fit to the tile box at natural aspect (no stretch).
     const artKey = typeof this.artPack.interiorObject === "function" ? (this.artPack.interiorObject(this, s.id) || this.artPack.interiorObject(this, s.kind)) : null;
@@ -430,7 +429,7 @@ export class InteriorScene extends Phaser.Scene {
   mkChrome() {
     // header plate (top-left): the building name
     this._header = this.add.text(0, 0, "  interior  ", { fontFamily: "ui-monospace, monospace", fontSize: "18px", color: "#ff9100", backgroundColor: "#0b0b0a" }).setOrigin(0, 0).setScrollFactor(0).setDepth(100000).setPadding(8, 7, 8, 7);
-    // EXIT — a PROMINENT button (operator couldn't find the old bare top-right text). A bordered orange pill in
+    // EXIT — a PROMINENT button (the old bare top-right text was easy to miss). A bordered orange pill in
     // the TOP-LEFT (where eyes land first, right under the building name) with a hover glow + an "(Esc)" hint, so
     // it unmistakably reads as "the way back". Built as bg Graphics + Text in a scroll-locked container.
     this._exitBg = this.add.graphics().setScrollFactor(0).setDepth(100001);
@@ -443,7 +442,7 @@ export class InteriorScene extends Phaser.Scene {
     this._exitHit.on("pointerover", () => { this._exitHover = true; this._drawExitButton(); });
     this._exitHit.on("pointerout", () => { this._exitHover = false; this._drawExitButton(); });
     this._exitHit.on("pointerdown", (p, x, y, ev) => { if (ev && ev.stopPropagation) ev.stopPropagation(); this.exit(); });
-    // Esc exits (operator ask). keydown-ESC fires on the ACTIVE scene; the interior scene is active while shown.
+    // Esc exits. keydown-ESC fires on the ACTIVE scene; the interior scene is active while shown.
     this.input.keyboard?.on("keydown-ESC", () => this.exit());
     this.positionChrome();
     this.scale.on("resize", () => { this.positionChrome(); this.fitToView(); this.drawMinimap(); });

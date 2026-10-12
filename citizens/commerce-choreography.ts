@@ -1,4 +1,4 @@
-// COMMERCE CHOREOGRAPHY (town-alive B3 — the operator's north-star vignette, generalized): the physical
+// COMMERCE CHOREOGRAPHY (the town's north-star vignette, generalized): the physical
 // shape of a purchase. A customer whose plan says "coffee" ENTERS Hobbs Cafe, TAKES A SEAT if the barista
 // isn't at the counter yet, WALKS TO THE REGISTER when she is, ORDERS (a say the clerk answers), PAYS over
 // the real x402 rails (custody on txHash — the existing buy loop, untouched), then SITS and CONSUMES at a
@@ -71,7 +71,7 @@ export type CommerceView = {
   selfSpot?: string | null;
 };
 
-// ---- the actions (each maps 1:1 onto existing world tools — nothing new for lifegiver to build) ----------
+// ---- the actions (each maps 1:1 onto existing world tools — nothing new to build) ----------
 
 export type CommerceAction =
   | { kind: "wait-seated"; spot: string; line: string } // clerk not at register yet → take a seat
@@ -172,7 +172,7 @@ export function clerkNextStep(v: CommerceView & { myStock: number; produceVerb?:
 }
 
 /**
- * ONE prompt line for renderTick (lifegiver's hook): the next commerce step for this agent at this place,
+ * ONE prompt line for renderTick (the citizen loop's hook): the next commerce step for this agent at this place,
  * "" when choreography has nothing to add. Chooses the clerk or buyer path by shop ownership. This is the
  * whole integration surface — world-tools calls it with values it already has in scope.
  */

@@ -2,7 +2,7 @@
 // Attaches a viewer (satisfies pause-on-no-viewer), enables the 5 funded merchants, starts a bounded
 // run, spawns the citizens (Haiku), streams usage, then cleans up the CITIZENS — leaving the sim UP so
 // the operator can keep watching the final state at http://localhost:4042/?art=limezu.
-// Safe by construction: duration cap + MAX_TICKS + the W0 fleet ceiling; never an unbounded loop.
+// Safe by construction: duration cap + MAX_TICKS + the fleet ceiling; never an unbounded loop.
 import { spawn, type ChildProcess } from "node:child_process";
 import { createWriteStream, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -17,7 +17,7 @@ const LOG_DIR = join(ROOT, "sim", "data", "agents");
 const SIM = "http://localhost:4042";
 const ALL = ["baker", "barista", "grocer", "courier", "smith", "student", "musician", "regular"];
 // DEMO_AGENTS="baker,barista,grocer" runs a SUBSET (fewer agents = less shared-pool throttle + more ticks each
-// in the window — see ledger D18). Default = the 5 funded merchants. Everyone not in the list is disabled.
+// in the window). Default = the 5 funded merchants. Everyone not in the list is disabled.
 const MERCHANTS = (process.env.DEMO_AGENTS ?? "baker,barista,grocer,courier,smith").split(",").map((s) => s.trim()).filter(Boolean);
 const OFF = ALL.filter((id) => !MERCHANTS.includes(id));
 const DURATION_MIN = Number(process.env.DEMO_MIN ?? 3);

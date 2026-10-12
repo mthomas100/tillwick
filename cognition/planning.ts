@@ -10,7 +10,7 @@ import { type Complete } from "./llm.js";
 //
 // SAME DISCIPLINE AS reflection/summary: this module takes an INJECTED `Complete` (llm.ts seam) and
 // never imports the SDK / never calls a real model at build — unit-tested with `stubComplete` for ZERO
-// token spend (INC-2026-06-18). Every LLM call DEGRADES: a thrown/empty completion yields an empty plan
+// token spend. Every LLM call DEGRADES: a thrown/empty completion yields an empty plan
 // (planDay/decompose return []) or "don't react" (reactAndMaybeReplan) rather than crashing a tick (the
 // repo's degrade-don't-die rule).
 //

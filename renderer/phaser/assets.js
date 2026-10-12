@@ -5,8 +5,8 @@
 // Packs:
 //   - "placeholder" (DEFAULT, committable, ZERO external art): textures generated at runtime from Phaser
 //     Graphics (colored rounded rects for buildings, a coin sprite for agents). Renders immediately, offline.
-//   - "limezu"      (operator-bought LimeZu Modern Interiors/Exteriors; raw art stays OUT of the repo):
-//     loads a tileset/atlas + character frames from renderer/phaser/assets/limezu/* — wired by W3-map/W3-sprites.
+//   - "limezu"      (separately purchased LimeZu Modern Interiors/Exteriors; raw art stays OUT of the repo):
+//     loads a tileset/atlas + character frames from renderer/phaser/assets/limezu/*.
 //   - "ninja"       (CC0 Ninja Adventure fallback): same shape, from assets/ninja/*.
 // Switch packs with NO engine change via ?art=limezu|ninja|placeholder (default placeholder). Missing pack art
 // degrades to placeholder per-texture, so a half-installed pack still renders.
@@ -89,7 +89,7 @@ function makeFolderPack(key, label, dir, tileSize) {
     key, label, tileSize,
     _loaded: false,
     preload(scene) {
-      // W3-map / W3-sprites will author these. Guard each with a check so a missing pack doesn't 404-spam:
+      // Optional art. Guard each with a check so a missing pack doesn't 404-spam:
       // we register the paths; Phaser's loader emits a 'loaderror' we listen for to mark assets unavailable.
       this._dir = `phaser/assets/${dir}`;
       // Example expected assets (authored later): a tileset image + a character atlas.
@@ -114,7 +114,7 @@ function makeFolderPack(key, label, dir, tileSize) {
 }
 
 // ---- the LimeZu pack: REAL Modern Exteriors art, loaded from renderer/phaser/assets/limezu/* ----
-// (art is gitignored/proprietary — operator-supplied; the cropped files are: ground/{grass,road,pavement}.png,
+// (art is gitignored/proprietary — user-supplied; the cropped files are: ground/{grass,road,pavement}.png,
 // buildings/{shop,shop2,home,civic}.png, characters/{baker,barista,grocer,courier,smith}.png — all 16px-grid.)
 // Buildings + agents render via real texture keys (zero scene change). Ground renders via the optional
 // groundTileKey() hook the scene tiles when present (additive; placeholder pack omits it → flat color).
@@ -150,7 +150,7 @@ const limezuPack = (() => {
   function hashStr(s) { let h = 0; for (let i = 0; i < String(s).length; i++) h = (h * 31 + String(s).charCodeAt(i)) | 0; return Math.abs(h); }
 
   // ---- INTERIOR art (B3): named furniture/floor/wall pieces sliced from _limezu-src/1_Interiors/ ----
-  // The interior scene (scenewright B2) requests a piece by SEMANTIC NAME; we map name → a `limezu:int:*`
+  // The interior scene requests a piece by SEMANTIC NAME; we map name → a `limezu:int:*`
   // texture key, or fall back per-piece (floors/walls → a generated flat tile; objects → null so B2 draws a
   // placeholder rect). Crops live under assets/limezu/interiors/{floors,walls,objects}/ (gitignored;
   // regen via scripts/crop-interiors.sh). Mirrors the exterior `failed`-Set degrade — a half-cropped pack
@@ -169,7 +169,7 @@ const limezuPack = (() => {
     "forge", "anvil",
   ];
   // ALIAS: a requested name (B1's raw `kind`, or a world.json object id) → the crop that paints it. So
-  // scenewright can pass `sublocation.kind` ("counter"|"table"|"desk"|"stage"|"bed"|"shelf"|"appliance"|
+  // the scene can pass `sublocation.kind` ("counter"|"table"|"desk"|"stage"|"bed"|"shelf"|"appliance"|
   // "register"|"seat") straight through, OR a specific id (espresso-machine, oven, bar-counter, lectern…).
   const INT_ALIAS = {
     // B1 kinds → a sensible default crop
@@ -242,7 +242,7 @@ const limezuPack = (() => {
   const INT_WALL_FILL = { plaster: 0xe6e4e8, wood: 0x8a6a44, brick: 0xa85650, tile: 0x9aa0a6 };
 
   return {
-    key: "limezu", label: "LimeZu Modern Exteriors (operator-bought)", tileSize: 16,
+    key: "limezu", label: "LimeZu Modern Exteriors (purchased separately)", tileSize: 16,
     tileSizeInterior: 48, // interior crops are on a 48px grid (the source resolution)
     preload(scene) {
       scene.load.on("loaderror", (file) => { if (file && file.key) failed.add(file.key); });
@@ -311,7 +311,7 @@ const limezuPack = (() => {
       if (base !== String(name)) return resolve(base);
       return null; // unknown/missing → null (caller draws a placeholder)
     },
-    // CONVENIENCE for B2 (scenewright's proposed shape): take a whole B1 sub-location and pick its furniture
+    // CONVENIENCE for the interior scene: take a whole sub-location and pick its furniture
     // texture. Prefers the specific object `id` (→ richer art, e.g. espresso-machine vs a generic stove), then
     // falls back to the `kind`. Same null-on-unknown contract as interiorObject. So B2 can call
     // `pack.furnitureTextureKey(scene, subLoc)` directly with the B1 record.

@@ -5,14 +5,14 @@
 // menu, PURELY, from the same perception slice renderTick already holds.
 //
 // TWO CONTRACTS IN ONE STRUCTURE:
-//   • D28 (the menu): every entry is an OPTION with a `how` (the exact tool calls) — the LLM chooses among
+//   • (the menu): every entry is an OPTION with a `how` (the exact tool calls) — the LLM chooses among
 //     eligible entries; the commerce-choreography state machine remains the SEQUENCER for what happens after
 //     a choice (its steps are these entries' `how` strings; nothing here re-derives sequencing).
-//   • D32 (the tape): entries whose eligibility predicate FAILS are returned too, with the failed predicate
+//   • (the tape): entries whose eligibility predicate FAILS are returned too, with the failed predicate
 //     as `reason` ("seller-off-station" / "no-stock" / "no-funds" / "already-holding" / "say-answered" / …)
 //     — so the affordance beat names every suppressor every tick, and a quiet day is never a mystery.
 //
-// PURE + zero-token: no I/O, no LLM. renderTick (lifegiver) calls affordancesFor() with values in scope,
+// PURE + zero-token: no I/O, no LLM. renderTick (citizens/world-tools.ts) calls affordancesFor() with values in scope,
 // renders the eligible entries as the choice menu, and emits ONE `affordances` beat via the existing POST
 // /event (helper: affordanceBeatPayload). Ignition's mechanical dialogue floor is unchanged — the menu is
 // the agent's CONSCIOUS surface; SocialStep is its reflexes.
@@ -21,7 +21,7 @@ import { sceneFor, type OccupantView } from "./commerce-choreography.js";
 import { SHOP_OWNER } from "../shops/registry.js";
 import type { HeardSay } from "./ignition.js";
 
-/** The SHARED VERB VOCABULARY (WORLD-ATLAS.md v0, flightrecorder sign-off): every menu entry maps onto 1-2
+/** The SHARED VERB VOCABULARY (v0, as generated into docs/design/WORLD-ATLAS.md by `npm run atlas`): every menu entry maps onto 1-2
  *  of these atlas verbs, so the menu, the affordances beat, and the atlas per-spot tables speak ONE
  *  language. `consume` is our proposed v0 addition (the own→consume→rebuy loop needs it; "rest" isn't it). */
 export type AtlasVerb =
@@ -42,10 +42,10 @@ export type AffordanceView = {
   reserveUsdc?: number;
   /** The shop I'm standing in, with goods. */
   currentShop?: { id: string; goods: Array<{ id: string; price?: string }> } | null;
-  /** Interior occupancy (insideHere.occupants) + my spot. Empty until main's /perceive fix lands. */
+  /** Interior occupancy (insideHere.occupants) + my spot. Empty when /perceive omits it. */
   occupants: OccupantView[];
   /** SELLER-side stock of the shop's primary good, when known (clerk: own inventory count; buyer: optional
-   *  — lifegiver MAY wire GET /inventory/<owner>; omitted ⇒ the stock predicate is skipped for buyers). */
+   *  — the caller MAY wire GET /inventory/<owner>; omitted ⇒ the stock predicate is skipped for buyers). */
   sellerStock?: number;
   /** My producer verb when I'm a clerk (bake/brew/…), for the restock how-line. */
   produceVerb?: string;
@@ -76,7 +76,7 @@ export function affordancesFor(v: AffordanceView): Affordance[] {
     const occupancyKnown = v.occupants.length > 0;
 
     if (want) {
-      // order-at-register — the D28 example, predicates in order: seller at station · stock · funds.
+      // order-at-register — the example, predicates in order: seller at station · stock · funds.
       const price = Number(String(want.price ?? "").replace(/[^0-9.]/g, "")) || 0.01;
       const reserve = v.reserveUsdc ?? 0.05;
       if (occupancyKnown && !clerkAtStation) {
@@ -175,7 +175,7 @@ export function renderAffordanceMenu(affs: Affordance[]): string {
   );
 }
 
-/** The D32 beat payload: eligible entries + suppressed entries WITH their reasons, both carrying their
+/** The beat payload: eligible entries + suppressed entries WITH their reasons, both carrying their
  *  atlas verbs so the tape joins menu↔atlas without a lookup table. Emit as kind:"affordances". */
 export function affordanceBeatPayload(affs: Affordance[]): {
   eligible: Array<{ id: string; verbs: AtlasVerb[] }>;
@@ -193,7 +193,7 @@ function clip(s: unknown, n: number): string {
 }
 
 // ---- runnable self-test (ZERO tokens) --------------------------------------------------------------------
-// `tsx citizens/affordances.ts` proves the D28 menu + D32 suppression pairing across the cafe matrix:
+// `tsx citizens/affordances.ts` proves the menu + suppression pairing across the cafe matrix:
 // order-at-register flips between eligible and each named suppressor (seller-off-station / no-stock /
 // no-funds / already-holding), join-table names the sitters, reply-to-say tracks adjacency + answered state,
 // the clerk gets station/serve/restock, and the beat payload carries every suppressed reason.
@@ -217,7 +217,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   assert(a?.eligible === true && /barista is serving/.test(a.label), "order eligible when the seller is at station");
   assert(a?.eligible && /go_inside.*talk.*evaluate_purchase.*buy/.test(a.how), "the how carries the full choreography sequence");
 
-  // seller off station → suppressed with the operator's exact predicate name.
+  // seller off station → suppressed with its exact predicate name.
   a = by(affordancesFor({ ...base, occupants: [{ id: "student" }, { id: "barista", sublocationId: "cafe-table-1" }] }), "order-at-register");
   assert(a?.eligible === false && a.reason === "seller-off-station", "seller-off-station named");
 
@@ -275,11 +275,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const fullMenu = renderAffordanceMenu(affordancesFor(base));
   assert(/you could:/i.test(fullMenu) && /1\./.test(fullMenu), "menu renders as a numbered choice list");
 
-  // atlas-verb vocabulary (WORLD-ATLAS v0 sign-off): entries carry their verbs; the beat carries them too.
+  // atlas-verb vocabulary (v0): entries carry their verbs; the beat carries them too.
   assert(by(affordancesFor(base), "order-at-register")?.verbs.join(",") === "order,buy", "order-at-register maps to atlas verbs order+buy");
   assert(by(holding, "consume-here")?.verbs.includes("consume"), "consume-here carries the proposed consume verb");
   assert(by(joinView, "join-table:cafe-table-1")?.verbs.join(",") === "sit,converse", "join-table maps to sit+converse");
   assert(beat.suppressed.every((s) => Array.isArray(s.verbs) && s.verbs.length > 0), "beat payload carries atlas verbs on suppressed entries");
 
-  console.log("affordances.ts self-test: ALL ASSERTIONS PASSED (D28 menu: order/consume/join/reply/greet/volition/clerk · D32 suppressors: seller-off-station/no-stock/no-funds/already-holding/speaker-left/say-answered/shelf-stocked · beat payload · render)");
+  console.log("affordances.ts self-test: ALL ASSERTIONS PASSED (menu: order/consume/join/reply/greet/volition/clerk · suppressors: seller-off-station/no-stock/no-funds/already-holding/speaker-left/say-answered/shelf-stocked · beat payload · render)");
 }

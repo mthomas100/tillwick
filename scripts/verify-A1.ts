@@ -1,22 +1,22 @@
-// scripts/verify-A1.ts — Wave-A bounded live runtime-verify of the TIME + DAILY-ROUTINE engine (A1) and the
-// frequent-conversation wiring (A3-back). FOR THE LEAD to run (D11: a teammate never runs a fleet during build).
+// scripts/verify-A1.ts — bounded live runtime-verify of the TIME + DAILY-ROUTINE engine (A1) and the
+// frequent-conversation wiring (A3-back). Spends tokens on a bounded live fleet: run it deliberately.
 //
-// It is the harsh-critic instrument for the keystone: it boots a FRESH sim (D20 — tsx has no hot-reload, so the
+// It is the instrument for the keystone: it boots a FRESH sim (tsx has no hot-reload, so the
 // new clock/spawn/plan code only takes effect on a restart), attaches a WS viewer (pause-on-no-viewer), enables
 // ALL 8 citizens, starts a BOUNDED run, then lets them run FREE (NO pre-positioning — the whole point is they
 // disperse on their own to their role-locations across the WHOLE map) and reads the evidence the vision is
 // graded on:
-//   • CLOCK gate (D20)   — /run-state.gameClock advances + the prompt states the time (proven via a citizen log line).
+//   • CLOCK gate         — /run-state.gameClock advances + the prompt states the time (proven via a citizen log line).
 //   • M1 map spread      — distinct buildings the fleet's tick-positions touched; how many agents LEFT the top street.
 //   • M2 schedule moves  — citizens whose ACT reasoning advanced the plan toward a NON-shop role-location.
 //   • M3 real dialogue   — ≥1 dialogue recorded with ≥3 turns.
 //   • M6 role actions     — ≥1 kind:"status" event ("🥖 baking…", "🎸 busking…").
 //
-// BOUNDS (each independent, incident-safe): MAX_TICKS/citizen · a hard wall-clock timeout · FLEET_CEILING $ ·
+// BOUNDS (each independent): MAX_TICKS/citizen · a hard wall-clock timeout · FLEET_CEILING $ ·
 // viewer attached throughout · bulletproof cleanup (try/finally + SIGKILL + pkill). NEVER runs gen-citizens.
 //
-// Usage (lead):  npx tsx scripts/verify-A1.ts            (defaults: 8 agents, MAX_TICKS=6, ~4-min cap)
-//                MAX_TICKS=8 RUN_MINUTES=5 npx tsx scripts/verify-A1.ts
+// Usage:  npx tsx scripts/verify-A1.ts            (defaults: 8 agents, MAX_TICKS=6, ~4-min cap)
+//         MAX_TICKS=8 RUN_MINUTES=5 npx tsx scripts/verify-A1.ts
 import { spawn, type ChildProcess } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -72,7 +72,7 @@ async function cleanup() {
 async function main() {
   await killStale();
 
-  console.log("⏳ booting a FRESH sim (D20: picks up the new clock/spawn/plan code; never calls an LLM)…");
+  console.log("⏳ booting a FRESH sim (picks up the new clock/spawn/plan code; never calls an LLM)…");
   const sim = spawn("npx", ["tsx", "sim/sim-server.ts"], { cwd: ROOT, stdio: "ignore", env: { ...process.env } });
   childProcs.push(sim);
   for (let i = 0; i < 40 && !(await get("/meta")); i++) await sleep(500);
@@ -83,7 +83,7 @@ async function main() {
   await new Promise<void>((res) => { ws!.on("open", () => res()); ws!.on("error", () => res()); setTimeout(res, 3000); });
   console.log("✓ viewer attached (pause-on-no-viewer satisfied)");
 
-  // CLOCK GATE (D20): confirm the new 20-min-day clock is live BEFORE spending tokens — gameClock present + the
+  // CLOCK GATE: confirm the new 20-min-day clock is live BEFORE spending tokens — gameClock present + the
   // spawns moved the non-merchants off the top street (student/musician/regular start on the south, y>=20-ish).
   for (const id of ALL) await post("/control", { action: "set-agent", id, enabled: true });
   const snap0 = await get("/snapshot");
@@ -122,7 +122,7 @@ async function main() {
   }
   await sleep(3000); // let the final tick's dialogue/trace flush to disk
 
-  console.log("\n===== EVIDENCE (Wave-A scorecard, miniature) =====");
+  console.log("\n===== EVIDENCE (scorecard, miniature) =====");
   const usage = await get("/usage");
   console.log(`fleet usage (metered incl. cognition + dialogue): ${JSON.stringify(usage?.fleet)}`);
   const rsEnd = await get("/run-state");
@@ -161,10 +161,10 @@ async function main() {
   // M6 — role-action status events
   console.log(`M6 ROLE ACTIONS: ${statuses.length} status event(s) emitted${statuses.length ? ` (e.g. ${statuses.slice(-3).map((s) => `${s.actor}:${(s.payload ?? {}).text ?? ""}`).join(", ")})` : ""}.`);
 
-  // ---- verdict (a soft gate — prints PASS/SOFT so the lead sees at a glance; never exits non-zero on a sim issue)
-  console.log("\n===== VERDICT (vs the Wave-A gate) =====");
+  // ---- verdict (a soft gate — prints PASS/SOFT so it reads at a glance; never exits non-zero on a sim issue)
+  console.log("\n===== VERDICT =====");
   const checks: Array<[string, boolean]> = [
-    ["CLOCK present (D20)", !!rsEnd?.gameClock],
+    ["CLOCK present", !!rsEnd?.gameClock],
     ["spawns moved non-merchants south", southOk],
     ["clock advanced during run", JSON.stringify(rsEnd?.gameClock) !== JSON.stringify(rs0?.gameClock)],
     ["M1 ≥1 non-top-street building reached", nonTop.length >= 1],
@@ -174,7 +174,7 @@ async function main() {
   ];
   for (const [name, ok] of checks) console.log(`  ${ok ? "✅" : "⬜"} ${name}`);
   const green = checks.filter(([, ok]) => ok).length;
-  console.log(`\n${green}/${checks.length} checks green. ${green >= 6 ? "WAVE-A KEYSTONE LOOKS LIVE." : "Some signals flat — inspect traces (sim/data/traces/*.jsonl) + the citizen logs above."}`);
+  console.log(`\n${green}/${checks.length} checks green. ${green >= 6 ? "SCHEDULE KEYSTONE LOOKS LIVE." : "Some signals flat — inspect traces (sim/data/traces/*.jsonl) + the citizen logs above."}`);
 }
 
 main()

@@ -5,13 +5,13 @@ import { Mind } from "./mind.js";
 import { RelationshipGraph } from "./relationships.js";
 import { holdDialogue, type DialogueSummary } from "./dialogue.js";
 import { type Complete, type CompleteOpts } from "./llm.js";
-// The LITERAL citizen-side orchestrator (conversationalist) — SDK-free + fully injectable, so the gate can
+// The LITERAL citizen-side orchestrator (citizens/dialogue-driver.ts) — SDK-free + fully injectable, so the gate can
 // exercise the REAL driver code (single-initiator guard, read-only-partner isolation, persist-initiator-only,
-// record), not just a shim. (Lead's mandate: exercise the real seam.)
+// record), not just a shim.
 import { maybeDriveDialogue } from "../citizens/dialogue-driver.js";
 
-// WAVE-2b PROOF-OF-CORRECTNESS — the end-to-end SOCIAL-LOOP integration test (zero-token). This is the GATE
-// before Wave 2c's gated live run: it proves the integrated loop the lead is about to wire into the hot files
+// PROOF-OF-CORRECTNESS — the end-to-end SOCIAL-LOOP integration test (zero-token). This is the GATE
+// before a bounded live run: it proves the integrated loop the citizen runtime uses
 // actually holds together, using the REAL seams (not mocks):
 //
 //   two agents go adjacent
@@ -27,12 +27,12 @@ import { maybeDriveDialogue } from "../citizens/dialogue-driver.js";
 // It ALSO checks the cognitive cross-wiring the loop depends on: holdDialogue writes the conversation back
 // into BOTH agents' memory streams (Mind.observe), so the dialogue actually feeds retrieval/reflection.
 //
-// COST DISCIPLINE (INC-2026-06-18): the model is the INJECTED `Complete` — a deterministic `routedStub`
+// COST DISCIPLINE: the model is the INJECTED `Complete` — a deterministic `routedStub`
 // (below) that returns the right thing per prompt KIND (engage decision / utterance / topic+belief / poignancy)
 // at ZERO token spend. NO SDK import, NO fleet, NO citizens. Run: `npx tsx cognition/integration.driver.ts`.
 //
 // FAITHFUL SEAM: the glue step `ingestDialogueSummary(summary, ego)` per participant is exactly the call site
-// agreed with conversationalist for citizens/dialogue-driver.ts (and the sim /dialogue close handler). This
+// used by citizens/dialogue-driver.ts (and the sim /dialogue close handler). This
 // harness mirrors that sequence 1:1, so a green run here means the real wiring is correct. (If the driver
 // lands as an importable pure function, swap `runDialogueGlue` for it — the sequence is identical.)
 
@@ -71,7 +71,7 @@ function makeRoutedStub(opts: { topic: string; belief: boolean; importance?: num
 // ---- the COGNITION-SEAM glue we're proving (the core of citizens/dialogue-driver.ts's maybeDriveDialogue) -
 
 // Run a dialogue between two IN-PROCESS Minds and fold its summary into BOTH participants' relationship graphs
-// — the EXACT cognition-seam sequence the citizen-loop runs. This is the CORE of conversationalist's
+// — the EXACT cognition-seam sequence the citizen-loop runs. This is the CORE of the dialogue driver's
 // `maybeDriveDialogue` (citizens/dialogue-driver.ts); section [2c] drives that REAL driver directly. What the
 // driver adds AROUND this core — the single-initiator guard (lower-id), the read-only partner Mind from a
 // temp-copy (cross-process isolation), and the POST {op:record} — are citizen/sim-runtime concerns, ORTHOGONAL
@@ -159,9 +159,9 @@ async function main() {
 
   // ---- 2b. THE LIVE-FLEET PATH: persistMemoryFor:"initiator" (cross-process safety) --------------------
   // In the live fleet each agent runs in its OWN process owning its OWN memory file; the citizen-side driver
-  // (citizens/dialogue-driver.ts, conversationalist) constructs the PARTNER's Mind READ-ONLY and passes
+  // (citizens/dialogue-driver.ts) constructs the PARTNER's Mind READ-ONLY and passes
   // persistMemoryFor:"initiator" so holdDialogue writes ONLY the initiator's stream — never appends to the
-  // partner's real file (which a second process would race). This is the path Wave 2c actually runs, so the
+  // partner's real file (which a second process would race). This is the path a live run actually takes, so the
   // GATE must prove the social loop stays intact under it: the partner's MEMORY isn't written, but BOTH
   // relationship graphs still update (the partner learns the tie via ingestDialogueSummary, not its stream).
   console.log('\n[2b] live-fleet persistMemoryFor:"initiator" — initiator-only memory write, but social loop intact');
@@ -203,7 +203,7 @@ async function main() {
     ok(partReload.size() === partBefore, "partner's on-disk memory file is untouched after a live-mode dialogue");
   }
 
-  // ---- 2c. THE LITERAL ORCHESTRATOR: drive conversationalist's maybeDriveDialogue end-to-end -----------
+  // ---- 2c. THE LITERAL ORCHESTRATOR: drive the dialogue driver's maybeDriveDialogue end-to-end -----------
   // The strongest fidelity: instead of a shim, drive the REAL citizen-side driver. It applies the single-
   // initiator guard (selfId < partner), constructs the partner Mind READ-ONLY by copying its persisted stream
   // to a temp dir (so even read-time embed/touch never hits the partner's real file), runs holdDialogue with

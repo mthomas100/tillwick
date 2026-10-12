@@ -2,9 +2,8 @@
 //
 // This does NOT spawn the sim or citizens and NEVER calls an LLM. It reads the artifacts a bounded live run
 // already wrote (sim/data/{relationships,dialogue,events}) and ASSERTS the S0-2 acceptance criteria against
-// them — so it proves the fix landed in a REAL run regardless of WHO drove that run (this teammate's own
-// bounded e2e, or the lead's consolidated Stage-0 / S0-5 walk-up-and-talk pass that "exercises exactly these
-// edges"). Run it immediately AFTER such a run, against the same sim/data dir:
+// them — so it proves the fix landed in a REAL run regardless of how that run was driven
+// (any bounded walk-up-and-talk run exercises exactly these edges). Run it immediately AFTER such a run, against the same sim/data dir:
 //
 //     npx tsx scripts/verify-s0-2.ts
 //

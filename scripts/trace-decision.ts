@@ -14,7 +14,7 @@ import { PERSONAS } from "../citizens/personas.js";
 //   • PERCEPTION + MEMORY context — from <id>.jsonl `system`/init + the memory stream around the tick's game-min
 //     (the observations the agent banked + the reflections/plan in play). NOTE: the EXACT rendered prompt
 //     (renderTick's perception+retrieved-working-set string) is NOT persisted verbatim today — only its inputs
-//     are. The structured per-tick trace proposed in OBSERVABILITY.md would close that last gap.
+//     are. The structured per-tick trace (cognition/trace.ts) closes that last gap.
 //
 // Usage:
 //   npm run trace -- baker 4           # trace baker's tick 4
@@ -44,7 +44,7 @@ const rule = (s: string) => `${C.b}${C.cyan}┌─ ${s} ${"─".repeat(Math.max(
 
 type Rec = { ts?: string; tick?: number; type?: string; msg?: any };
 type Mem = { id: string; kind: string; text: string; createdAt: number; importance: number };
-// The structured per-tick trace line (cognition/trace.ts / OBSERVABILITY §7). When present we render the
+// The structured per-tick trace line (cognition/trace.ts / docs/design/observability.md §7). When present we render the
 // EXACT retrieved working-set + subscores for the tick instead of reconstructing context from the stream.
 type TraceRetrieved = { id: string; score: number; recency: number; importance: number; relevance: number; text: string };
 type TraceLine = {

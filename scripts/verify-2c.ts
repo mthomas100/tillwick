@@ -1,6 +1,6 @@
-// scripts/verify-2c.ts — GATED Wave-2c live runtime-verify (operator-OK'd, bounded, incident-safe).
+// scripts/verify-2c.ts — GATED live runtime-verify (bounded; spends tokens).
 //
-// Proves the W2b social loop LIVE: boots the sim (never calls an LLM), attaches a WS viewer (satisfies
+// Proves the social loop LIVE: boots the sim (never calls an LLM), attaches a WS viewer (satisfies
 // pause-on-no-viewer), enables ONLY baker+barista, starts a BOUNDED run, spawns the 2 citizen processes
 // (Haiku, MAX_TICKS=6), nudges both toward the cafe so they MEET, then reads the evidence
 // (usage/dialogue/relationships/memory). Cleanup is bulletproof (try/finally + SIGKILL + pkill).

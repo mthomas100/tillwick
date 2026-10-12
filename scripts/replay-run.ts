@@ -5,7 +5,7 @@
 //
 // TWO SOURCES, one normalized stream:
 //   • REAL TAPE  — sim/data/runs/<runId>/{tape.jsonl,manifest.json} (written by sim/flight-tape.ts once
-//     the lead mounts the hooks). Full fidelity: positions per step, interior coords, earshot audiences.
+//     the sim hooks are mounted). Full fidelity: positions per step, interior coords, earshot audiences.
 //   • LEGACY     — synthesized from events.jsonl + traces/*.jsonl + dialogue.jsonl for runs that predate
 //     the tape (e.g. TODAY'S 2026-07-18 run). Degrades honestly: the header lists exactly which beat
 //     kinds are missing and every detector that can't run says WHY.
@@ -186,7 +186,7 @@ function loadLegacy(win: { sinceMs?: number; untilMs?: number }): Loaded {
     });
   }
   beats.sort((a, b) => a.tms - b.tms || (a.src === "event" ? 0 : 1) - (b.src === "event" ? 0 : 1));
-  // mark legacy DOUBLE-EMITS (audit §5: sim + citizen both record produce ~2ms apart): same actor+kind ≤2s.
+  // mark legacy DOUBLE-EMITS (sim + citizen both record produce ~2ms apart): same actor+kind ≤2s.
   const lastByActorKind = new Map<string, number>();
   for (const b of beats) {
     if (b.src !== "event") continue;
@@ -326,7 +326,7 @@ function describe(b: NormBeat, forTimeline: boolean): string | null {
     case "purchase": return `💸 buys ${str(p.item)} for $${num(p.price_usdc)} at ${str(p.shop)}${(d.txHash as string) ? ` ${c.green}tx ${(d.txHash as string).slice(0, 10)}…${c.reset}` : ` ${c.red}(NO txHash)${c.reset}`}`;
     case "plan-step": return `🎯 plan: ${oneline(str(p.step), 80)}${p.until ? ` ${c.dim}(until ${str(p.until)})${c.reset}` : ""}`;
     case "decision": return `🧭 decides: ${oneline(str(p.reason), 90)}`;
-    // D32 causal-chain beats (sim hooks + the peers' shared kinds)
+    // causal-chain beats (sim hooks + the peers' shared kinds)
     case "perceive": return forTimeline ? `${c.dim}👁 perceives: ${oneline(JSON.stringify(b.data ?? {}), 110)}${c.reset}` : null;
     case "act-fail": return `${c.red}⛔ act FAILED: ${str(d.action)} — ${oneline(str(d.reason), 90)}${c.reset}`;
     case "say-rejected": return `${c.red}🚫 say to ${str(d.to)} rejected: ${str(d.reason)}${c.reset}`;
@@ -344,7 +344,7 @@ function describe(b: NormBeat, forTimeline: boolean): string | null {
     case "buy-settled": return `✅ settlement confirmed ${(str(p.txHash) || str(d.txHash)).slice(0, 12)}…`;
     case "buy-failed": return `${c.red}❌ buy FAILED: ${oneline(str(p.reason), 80)}${c.reset}`;
     // the peers' FINAL T0 vocabulary (life-spine + social-weave): affordances arrives in BOTH
-    // shapes — lifegiver {options[], at, plan, turn} · socialweaver {eligible[], suppressed[{id,reason}]}.
+    // shapes — menu {options[], at, plan, turn} · social {eligible[], suppressed[{id,reason}]}.
     case "affordances": {
       const opts = (p.options as string[]) ?? (p.eligible as string[]) ?? [];
       const sup = (p.suppressed as Array<{ id: string; reason: string }>) ?? [];
@@ -391,7 +391,7 @@ function detectFlags(L: Loaded, idleGmThreshold: number): Flag[] {
       if (whereB && whereB !== claimed) {
         say({ code: "status-position-mismatch", severity: "high", who: b.actor, when: b.t, msg: `status says "${claimed}" but the beat's own position is ${whereB} @(${b.at.x},${b.at.y}) — one layer is lying` });
       } else if (b.at.inside && !b.at.inside.spot) {
-        say({ code: "working-from-the-doorway", severity: "med", who: b.actor, when: b.t, msg: `status "${oneline(str((b.data as { payload?: { text?: string } }).payload?.text), 30)}" emitted while inside ${b.at.inside.b} at the door tile (${b.at.inside.ix},${b.at.inside.iy}) with NO station/seat — the operator's doorway-baker case` });
+        say({ code: "working-from-the-doorway", severity: "med", who: b.actor, when: b.t, msg: `status "${oneline(str((b.data as { payload?: { text?: string } }).payload?.text), 30)}" emitted while inside ${b.at.inside.b} at the door tile (${b.at.inside.ix},${b.at.inside.iy}) with NO station/seat — the doorway-baker case` });
       }
       continue;
     }
@@ -457,7 +457,7 @@ function detectFlags(L: Loaded, idleGmThreshold: number): Flag[] {
     }
   }
 
-  // 5) zombie ticks (trace result cost 0 — the INC-2026-06-18 tell)
+  // 5) zombie ticks (trace result cost 0 — the silent-loop tell)
   for (const b of beats) {
     if (b.src === "trace" && b.kind === "tick" && num((b.data as { costUsd?: unknown })?.costUsd) === 0) {
       say({ code: "zombie-tick", severity: "high", who: b.actor, when: b.t, msg: `tick completed with cost $0 (trace line ${b.line}) — the zombie-loop tell` });
@@ -479,8 +479,8 @@ function detectFlags(L: Loaded, idleGmThreshold: number): Flag[] {
     }
   }
 
-  // 8) D32: every failed act is an anomaly (the act-fallthrough trap made loud), and an EMPTY affordance
-  //    menu while present in a place is the stuck precursor (operator addendum).
+  // 8) every failed act is an anomaly (the act-fallthrough trap made loud), and an EMPTY affordance
+  //    menu while present in a place is the stuck precursor.
   for (const b of beats) {
     const p = ((b.data ?? {}) as { payload?: Record<string, unknown> }).payload ?? {};
     if (b.kind === "act-fail" || b.kind === "buy-failed") {
@@ -501,7 +501,7 @@ function detectFlags(L: Loaded, idleGmThreshold: number): Flag[] {
   return flags;
 }
 
-// ───────────────────────── the "why did X not happen" query (D32 — suppressions first-class) ────────────
+// ───────────────────────── the "why did X not happen" query (suppressions first-class) ────────────
 function whyView(L: Loaded, agent: string): string {
   const out: string[] = [`\n${c.bold}  WHY-NOT — every evaluated-but-unfired trigger, failed act, and exclusion involving ${agent.toUpperCase()}${c.reset}`];
   const WHY_KINDS = new Set(["suppressed", "act-fail", "say-rejected", "buy-failed", "menu", "affordances", "blocked", "stuck", "ignition"]);
@@ -530,7 +530,7 @@ function whyView(L: Loaded, agent: string): string {
   }
   if (!n) {
     out.push(L.mode === "legacy"
-      ? `  ${c.yellow}no suppression/act-fail beats exist in legacy data — this query lights up on the first run taped with the D32 hooks (suppressed/act-fail/menu/earshot-excluded beats)${c.reset}`
+      ? `  ${c.yellow}no suppression/act-fail beats exist in legacy data — this query lights up on the first run taped with the hooks (suppressed/act-fail/menu/earshot-excluded beats)${c.reset}`
       : `  ${c.green}nothing was suppressed, failed, or excluded for ${agent} in this run${c.reset}`);
   }
   return out.join("\n");
@@ -612,7 +612,7 @@ function mapView(L: Loaded, atStr: string): string {
 function interiorView(L: Loaded, buildingId: string, atStr?: string): string {
   const b = L.world.buildings.find((x) => x.id === buildingId);
   if (!b) return `\n  ${c.red}no such building: ${buildingId}${c.reset}`;
-  if (!b.interior) return `\n  ${c.yellow}${b.label} has NO interior model (see WORLD-ATLAS smells) — nothing to draw truthfully${c.reset}`;
+  if (!b.interior) return `\n  ${c.yellow}${b.label} has NO interior model (see the smells in docs/design/WORLD-ATLAS.md, generated by "npm run atlas") — nothing to draw truthfully${c.reset}`;
   let occupants: Array<{ id: string; x: number; y: number }> = [];
   let caveat = "";
   if (L.mode === "tape") {
@@ -660,7 +660,7 @@ function main(): void {
 
   if (args.list) {
     const ids = listRunIds(RUNS);
-    if (!ids.length) { console.log("no recorded runs yet (sim/data/runs is empty — the tape starts recording once the lead mounts the hooks)"); return; }
+    if (!ids.length) { console.log("no recorded runs yet (sim/data/runs is empty — the tape starts recording on the first sim run)"); return; }
     for (const id of ids) {
       const m = readManifest(RUNS, id);
       console.log(`${id}  ${m?.startedTs ?? "?"} → ${m?.endedTs ?? "OPEN"}  ${m?.endReason ?? ""}  beats:${m?.beats ?? "?"}`);

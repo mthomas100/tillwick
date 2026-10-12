@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { personaFor } from "./personas.js";
 
-// ROLE → BUILDINGS (Wave A1). The keystone gap (D23) was that the ACT prompt has NO role→building map, so the
+// ROLE → BUILDINGS. The keystone gap was that the ACT prompt has NO role→building map, so the
 // only attractor is *shops* — and every shop door sits on the top street. This module resolves, for each
 // citizen, the three places that anchor a believable day:
 //   • workId    — where they spend their work-window (barista@cafe, student@college, musician@pub-stage)

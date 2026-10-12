@@ -1,4 +1,4 @@
-// sim/perception.driver.ts — ZERO-TOKEN validation for W2b-perception (the world→memory bridge).
+// sim/perception.driver.ts — ZERO-TOKEN validation for perception (the world→memory bridge).
 //   npx tsx sim/perception.driver.ts
 // Drives assemblePerception() through an agent's trip across town and asserts:
 //   - the SeenSubgraph GROWS correctly as the agent moves/enters (exterior on approach, interior on entry)
@@ -107,5 +107,5 @@ check(/No one else is around right now\./.test(lone.observationText), `solo agen
 check(lone.here === null && lone.nearbyObjects.length === 0, `solo on an empty tile: no here, no objects`);
 
 // ---------------------------------------------------------------------------
-console.log(`\n${failures === 0 ? "✅ ALL GREEN" : `❌ ${failures} FAILURE(S)`} — W2b-perception driver`);
+console.log(`\n${failures === 0 ? "✅ ALL GREEN" : `❌ ${failures} FAILURE(S)`} — perception driver`);
 process.exit(failures === 0 ? 0 : 1);

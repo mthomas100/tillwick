@@ -1,9 +1,9 @@
 // The LLM-completion seam for cognition modules.
 //
 // Reflection, planning, agent-summary, and importance-scoring all need to call a model — but they MUST be
-// testable without spending tokens (INC-2026-06-18: zero spend at build/test). So they take an injected
+// testable without spending tokens (zero spend at build/test). So they take an injected
 // `Complete` function instead of importing the SDK directly. The real Claude-backed `Complete` is wired at
-// INTEGRATION (W1-integrate) inside the citizen runtime (auth per citizens/auth.ts, per-agent
+// INTEGRATION inside the citizen runtime (auth per citizens/auth.ts, per-agent
 // model). At build/unit-test time, inject `stubComplete`.
 
 export type CompleteOpts = { system?: string; maxTokens?: number; model?: string };

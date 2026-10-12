@@ -3,13 +3,13 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-// verify-life-spine.ts — ZERO-TOKEN proof of the T0 life-spine (lifegiver). Run: `npx tsx scripts/verify-life-spine.ts`
+// verify-life-spine.ts — ZERO-TOKEN proof of the T0 life-spine. Run: `npx tsx scripts/verify-life-spine.ts`
 //
 // Proves, with no sim and no LLM:
 //   1. REACHABILITY — replicates the sim's walkability rules over world.json and shows (a) the CURRENT
-//      insideTile() formula leaves pub/college/dorm goTo-targets with no path from anywhere (the audit-A1
+//      insideTile() formula leaves pub/college/dorm goTo-targets with no path from anywhere (the
 //      geometry bug), and (b) the door-adjacent inside-tile formula makes every building reachable from
-//      every spawn. This is the contract the lead's sim-server patch must satisfy.
+//      every spawn. This is the contract sim-server.ts must satisfy.
 //   2. SCHEDULES — every role's 24h arc validates (tiling, real buildings, real stations, work-window
 //      coverage) via schedules.ts validateSchedule.
 //   3. PLAN TEMPLATE → Mind — with stubComplete + a fixed clock, ensureDailyPlan seeds the template at zero
@@ -39,7 +39,7 @@ const check = (cond: unknown, msg: string) => {
 
 // ---- 1. REACHABILITY ------------------------------------------------------------------------------------
 // Replicates sim-server.ts walkable(): lanes = street+sidewalk ROWS ONLY (the live sim ignores world.json
-// lanes.cols — its own _note admits it awaits "W2-move"); plus each building's door + registered inside tile.
+// lanes.cols — its own _note says lane-based movement is not wired yet); plus each building's door + registered inside tile.
 // Reachability = BFS over 4-connected walkable tiles. TWO findings, both LIVE-CONFIRMED on the running sim
 // (2026-07-18: POST /act goTo student→cafe = steps:0 · student→college = steps:0 · baker→pub = steps:0):
 //   (a) TWO ISLANDS — without lanes.cols there is NO walkable tile between row 11 and row 26, so the north
@@ -194,10 +194,10 @@ void (async () => {
     check(/pub/.test(rm.planStep) && /#pub-stage/.test(rm.planStep), `musician 20:00 planStep → pub#pub-stage ("${rm.planStep}")`);
     const rr = await renderTick("regular", personaFor("regular"), 1, undefined, 4 * 1440 + 2 * 60);
     check(/sleep/.test(rr.planStep) && /@coliving/.test(rr.planStep), `regular 02:00 planStep → asleep at coliving ("${rr.planStep}")`);
-    // D28 never-stuck: a stuckNote makes the top decide-branch "do something different".
+    // never-stuck: a stuckNote makes the top decide-branch "do something different".
     const rs = await renderTick("student", personaFor("student"), 2, undefined, gm, "all 3 actions you tried came back blocked — 2 ticks in a row now.");
-    check(/YOU ARE STUCK/.test(rs.prompt) && rs.prompt.indexOf("YOU ARE STUCK") < rs.prompt.indexOf("WORKING HOURS"), "stuckNote branch present ABOVE the work-window override (D28)");
-    // D32: planMeta is the structured plan-step beat payload.
+    check(/YOU ARE STUCK/.test(rs.prompt) && rs.prompt.indexOf("YOU ARE STUCK") < rs.prompt.indexOf("WORKING HOURS"), "stuckNote branch present ABOVE the work-window override");
+    // planMeta is the structured plan-step beat payload.
     check(rs.planMeta?.building === "college" && rs.planMeta?.station === "study-desk-1" && rs.planMeta?.until === "12:30", `planMeta structured for the beat (${JSON.stringify(rs.planMeta)})`);
     // never-stuck outcome tally: read-and-reset contract.
     const { takeTurnOutcome } = await import("../citizens/world-tools.js");

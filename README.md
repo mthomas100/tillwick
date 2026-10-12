@@ -167,7 +167,7 @@ eight citizens on Haiku 4.5.*
 What that run shows, as recorded:
 - **It covered a full waking day.** The run spanned game day 5 07:00 to day 6 02:00 in 15 min 54 s of
   real time. It was stopped by the **$5 per-run budget ceiling**: 50 citizen ticks came to $5.20 at
-  API list prices (the run used the opt-in subscription login, so this was notional), a median of $0.095 per tick and a maximum of $0.28.
+  API list prices, a median of $0.095 per tick and a maximum of $0.28.
 - **Producers kept to their schedules.** Baker, barista, grocer and smith spent most of the day at
   their workplaces and went home at night.
 - **The town got crossed.** Citizens walked between the north and south halves of the map. Earlier
@@ -182,11 +182,9 @@ What that run shows, as recorded:
 ledger is not shipped because its tx hashes point at the testnet wallets.*
 
 Across all runs the ledger records **1,233 purchase events (1,166 distinct tx hashes)**. Nearly all of
-them came from **one unattended day**. On 2026-06-17/18 the first five-citizen build ran in an
-infinite loop for 18.5 hours, with no stop condition and no link to the browser. That amounted to
-7,633 Claude conversations (ticks), about $195 at API list prices, on a personal subscription until it hit the plan's usage limit. The post-mortem
-is in [docs/design/incident-2026-06-18-token-drain.md](docs/design/incident-2026-06-18-token-drain.md).
-Its fix is the governor that every run now goes through: a mandatory duration, a per-run dollar
+them came from **one unattended day**: on 2026-06-18 the first five-citizen build ran in an infinite
+loop, with no stop condition and no link to the browser, for 7,633 Claude conversations (ticks), about
+$195 at API list prices. The fix is the governor that every run now goes through: a mandatory duration, a per-run dollar
 ceiling, pause when no browser is watching, max-tick and runtime backstops, and a circuit breaker.
 The later runs are short, bounded and observed, so the busy bar is the runaway day and not the
 design.
@@ -223,10 +221,9 @@ hashes are redacted, and the cards show `replay · wallet not shown` with no bal
   Agent SDK ([quickstart](https://code.claude.com/docs/en/agent-sdk/quickstart)). Every tick is a real,
   billed model call: the recorded run's 50 ticks cost $5.20 at API prices, and the per-run ceiling
   stops a run at $5 by default (`FLEET_CEILING_USD`).
-- *Opt-in, for personal local experiments only:* your own logged-in Claude subscription instead of a
-  key (`TILLWICK_USE_CLAUDE_LOGIN=1`, or `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`). This is
-  how the project was developed. The dollar figures are then notional, and the runs count against your
-  plan's usage limits.
+- *Opt-in, for personal local experiments only:* a local Claude login instead of a key
+  (`TILLWICK_USE_CLAUDE_LOGIN=1`, or `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`). The dollar
+  figures are then notional, and the runs count against that account's usage limits.
 - Testnet wallets: free Base Sepolia USDC from <https://faucet.circle.com>.
 - Optional: the LimeZu art packs (paid). See `renderer/phaser/assets/README.md` for where to put them.
 
@@ -263,7 +260,7 @@ shops/        the x402 shop servers and their registry; stipend-server.ts is the
 renderer/     the browser UI: Phaser town and interior scenes, feed, cards, control panel, CC0 music
 scripts/      fleet spawner, replay server, tape replayer and grader, inspectors, funding, verify-* tests
 samples/      one recorded run for replay mode
-docs/design/  architecture, economy, observability, experiment backlog, and the 2026-06-18 incident post-mortem
+docs/design/  architecture, economy (x402 layer), observability (watching and explaining the citizens)
 ```
 
 ## Status and limitations
@@ -284,12 +281,11 @@ docs/design/  architecture, economy, observability, experiment backlog, and the 
 
 ## How it was built
 
-Tillwick was built almost entirely by Claude Code agent teams. A lead agent planned waves of work,
-used single-use teammates for each job, committed their work and graded every run from the sim's own
-logs. Hence the instrumentation: the flight tape, the `--why` replayer and the scorecard. The sim's
-rule of never calling a model, the run-state governor and the zero-token test drivers all came out of
-that process and the incident above. The design notes in [docs/design/](docs/design/) are the cleaned-up
-versions of what those agents worked from.
+Tillwick was built almost entirely by Claude Code agents, with every run graded from the sim's own
+logs rather than by eye. Hence the instrumentation: the flight tape, the `--why` replayer and the
+scorecard. The sim's rule of never calling a model, the run-state governor and the zero-token test
+drivers all came out of that way of working and the runaway day above. The design notes in
+[docs/design/](docs/design/) explain how the system fits together.
 
 ## Assets
 

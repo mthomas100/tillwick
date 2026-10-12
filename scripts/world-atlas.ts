@@ -129,11 +129,11 @@ function generate(): { md: string; smellTotals: Map<string, number>; highCount: 
   L.push("Agent spawns: " + Object.entries(world.spawns ?? {}).map(([id, s]) => `${id}(${s.x},${s.y})`).join(" · "));
   L.push("");
 
-  // affordance vocabulary (operator addendum: per-object action menus are ground truth for the phase)
+  // affordance vocabulary (per-object action menus are ground truth)
   L.push("## Affordance vocabulary v0 (SHARED NAMING — atlas + tape menu/choice beats + ACT prompt)");
   L.push("");
-  L.push("> Proposed by flightrecorder from world.json mechanics; lifegiver (prompt menus) + socialweaver");
-  L.push("> (commerce/social) confirm or extend. Per-spot assignments are in each building's table below.");
+  L.push("> Derived from world.json mechanics; the prompt menus and the commerce/social layer");
+  L.push("> use the same names. Per-spot assignments are in each building's table below.");
   L.push("> Known gap, flagged per-spot as `no-affordances`: an appliance WITHOUT `station:true` (dartboard,");
   L.push("> fireplace, quench tub, coffee urn) currently affords NOTHING — dead furniture until a verb like");
   L.push("> `use`/`play`/`warm` is agreed.");
@@ -146,7 +146,7 @@ function generate(): { md: string; smellTotals: Map<string, number>; highCount: 
   // renderer-class smells that apply to EVERY interior (so per-building lists stay specific)
   L.push("## Renderer-class smells (every interior, one fix each — not repeated per building)");
   L.push("");
-  L.push("- **🟥 occupant-on-furniture** — occupants render AT their spot tile (`interior-scene.js update()`), so an agent at a counter/register is drawn overlapping the furniture sprite (the operator's \"grocer overlapping the counter\"). Needs a stand-offset (draw at the adjacent approach tile or feet-anchor below the prop).");
+  L.push("- **🟥 occupant-on-furniture** — occupants render AT their spot tile (`interior-scene.js update()`), so an agent at a counter/register is drawn overlapping the furniture sprite (e.g. the grocer overlapping the counter). Needs a stand-offset (draw at the adjacent approach tile or feet-anchor below the prop).");
   L.push("- **🟥 walls-are-decorative** — interiors draw only a half-tile decorative band along the TOP edge (`interior-scene.js:328-334`); no side/bottom walls, so nothing anchors furniture visually and rooms read as floating scatter.");
   L.push("- **🟧 labels-8px** — spot labels render at `floor(48*0.18)` = 8px (`interior-scene.js:386`) — illegible at normal zoom (\"tiny illegible labels\").");
   L.push("- **🟥 single-tile-box contain-fit** — every crop is crushed into a ~1-tile box (`interior-scene.js:371`); all multi-tile art becomes slivers (instances flagged per building below). Fix direction: scale by source tiles (`sw/48 × sh/48` render tiles) or give sublocations a real footprint.");

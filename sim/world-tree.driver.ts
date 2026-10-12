@@ -1,12 +1,12 @@
-// sim/world-tree.driver.ts — ZERO-TOKEN validation for the W2-world keystone.
+// sim/world-tree.driver.ts — ZERO-TOKEN validation for the world-tree keystone.
 //   npx tsx sim/world-tree.driver.ts
 // Loads sim/world.json, builds the tree, renders subtrees to NL, exercises the per-agent seen-subgraph,
-// and asserts the invariants the rest of Wave 2 depends on:
+// and asserts the invariants the rest of the sim depends on:
 //   - every live citizen has a HOME (home/<id> with resident=id) and a per-citizen SPAWN on a walkable tile
 //   - the world is walkability-COHERENT: every building's door + door-adjacent inside tile are walkable and
 //     adjacent; intra-corridor A*/BFS paths are NON-EMPTY (the map is traversable)
 //   - the pinned contracts survive: spawns{}, buildings[].goods, the 5 shop ids the registry depends on
-// Does NOT boot the sim or run any citizen (INC-2026-06-18 discipline — fleet runs are separately gated).
+// Does NOT boot the sim or run any citizen (fleet runs are separately gated).
 //
 // Exit 0 = all green. Exit 1 = a failed assertion (printed).
 
@@ -79,7 +79,7 @@ check(coherent === world.buildings.length, `all ${world.buildings.length} buildi
 section("walkability is NON-EMPTY + traversable (intra-corridor BFS)");
 // Group buildings by their lane corridor (the sidewalk row their door sits on / next to). Within a corridor,
 // every building must be reachable from every other (the committed guarantee; cross-corridor needs the
-// W2-move 2D-lane hook). We test, per corridor, a path from the first building's inside tile to each other's.
+// the 2D-lane hook). We test, per corridor, a path from the first building's inside tile to each other's.
 const laneRows = new Set<number>([...world.street.rows, ...world.sidewalks.rows]);
 const corridorOf = (b: typeof world.buildings[number]): number => {
   // the lane row adjacent to (or equal to) the door
@@ -118,13 +118,13 @@ for (let i = 1; i < shopNodes.length; i++) {
 }
 check(shopPairOK, `all 5 shops are pairwise reachable (the economy still works pre-move-upgrade)`);
 
-// cross-corridor connectivity is OFF without the 2D lane hook, ON with it (documents the W2-move hook).
+// cross-corridor connectivity is OFF without the 2D lane hook, ON with it (documents the 2D-lane hook).
 const north = world.buildings.find((b) => b.id === "cafe")!;
 const south = world.buildings.find((b) => b.id === "college")!;
 const [nx, ny] = tree.doorInsideTile(north);
 const [cx, cy] = tree.doorInsideTile(south);
 check(tree.pathLen(nx, ny, cx, cy, { use2DLanes: false }) === 0, `cross-corridor is closed without 2D lanes (rows-only sim)`);
-check(tree.pathLen(nx, ny, cx, cy, { use2DLanes: true }) > 0, `cross-corridor OPENS with lanes.cols (the W2-move hook)`);
+check(tree.pathLen(nx, ny, cx, cy, { use2DLanes: true }) > 0, `cross-corridor OPENS with lanes.cols (the 2D-lane hook)`);
 
 // ---------------------------------------------------------------------------
 section("env→NL rendering (Fig 2)");
@@ -168,5 +168,5 @@ const seen2 = new SeenSubgraph(tree, "smith");
 check(seen2.snapshot().buildings.length === 0, `a second agent's subgraph is independent (empty)`);
 
 // ---------------------------------------------------------------------------
-console.log(`\n${failures === 0 ? "✅ ALL GREEN" : `❌ ${failures} FAILURE(S)`} — W2-world driver`);
+console.log(`\n${failures === 0 ? "✅ ALL GREEN" : `❌ ${failures} FAILURE(S)`} — world-tree driver`);
 process.exit(failures === 0 ? 0 : 1);

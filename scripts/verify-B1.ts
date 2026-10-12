@@ -1,9 +1,8 @@
-// scripts/verify-B1.ts — Wave-B1/B4 bounded live runtime-verify of INTERIORS (data model + presence + act-inside).
-// Run against a live sim once the B1 interior routes are mounted (the sim-server.ts wiring behaviorist owns
-// interiors.ts/perception.ts/world-tools.ts; sim-server.ts is the lead's). D11: a teammate never runs a fleet
-// during build — this is the lead's consolidated gate.
+// scripts/verify-B1.ts — bounded live runtime-verify of INTERIORS (data model + presence + act-inside).
+// Run against a live sim once the B1 interior routes are mounted (sim/interiors.ts,
+// perception.ts and world-tools.ts, wired into sim-server.ts). Spends tokens on a bounded live fleet.
 //
-// It boots a FRESH sim (D20 — tsx no hot-reload; the new interior code + the hook only take effect on restart),
+// It boots a FRESH sim (tsx has no hot-reload; the new interior code + the hook only take effect on restart),
 // FIRST checks the hook is wired (GET /who-inside/:building responds; /perceive carries insideHere), then drives
 // a few agents into buildings and reads the evidence the "step inside" vision is graded on:
 //   • PRESENCE   — agents that reached a building's inside-tile are registered inside it (/who-inside occupants).
@@ -12,10 +11,10 @@
 //   • PERCEIVE   — /perceive?agent=… carries insideHere {interior, sublocations, occupants} when inside.
 //   • STATUS     — role-action status events still fire (reused from A3) for producers working inside.
 //
-// BOUNDS (incident-safe): MAX_TICKS/citizen · hard wall-clock timeout · FLEET_CEILING $ · viewer attached ·
+// BOUNDS: MAX_TICKS/citizen · hard wall-clock timeout · FLEET_CEILING $ · viewer attached ·
 // bulletproof cleanup (try/finally + SIGKILL + pkill + pgrep-empty check). NEVER runs gen-citizens.
 //
-// Usage (lead, after applying the hook):  npx tsx scripts/verify-B1.ts
+// Usage:  npx tsx scripts/verify-B1.ts
 import { spawn, type ChildProcess } from "node:child_process";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -64,14 +63,14 @@ async function cleanup() {
 
 async function main() {
   await killStale();
-  console.log("⏳ booting a FRESH sim (D20: picks up the interior code + the hook; never calls an LLM)…");
+  console.log("⏳ booting a FRESH sim (picks up the interior code + the hook; never calls an LLM)…");
   const sim = spawn("npx", ["tsx", "sim/sim-server.ts"], { cwd: ROOT, stdio: "ignore", env: { ...process.env } });
   childProcs.push(sim);
   for (let i = 0; i < 40 && (await get("/meta")).status !== 200; i++) await sleep(500);
   if ((await get("/meta")).status !== 200) throw new Error("sim did not come up");
   console.log("✓ sim up");
 
-  // HOOK GATE — is the B1 sim-server wiring applied? If /who-inside 404s, the lead hasn't applied the hook yet.
+  // HOOK GATE — is the B1 sim-server wiring applied? If /who-inside 404s, the hook isn't wired.
   const who0 = await get("/who-inside/cafe");
   if (who0.status === 404 || who0.status === 0) {
     console.log("\n⛔ GET /who-inside/:building is missing: this sim build predates the B1 interior routes.");

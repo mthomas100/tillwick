@@ -6,7 +6,7 @@
   "street": { "rows": [9, 10, 27, 28] },
   "sidewalks": { "rows": [8, 11, 26, 29] },
   "lanes": {
-    "_note": "OPTIONAL 2D enrichment for W2-move. `cols` are vertical walkable columns that bridge the North (rows 8-11) and South (rows 26-29) corridors through Johnson Park. The CURRENT sim (sim/sim-server.ts) walkability is rows-only and IGNORES this field, so intra-corridor A* is unaffected; cross-corridor routing turns on only when W2-move teaches walkable()/insideTile() to read it (see HOOKS SPEC). Each col entry: walkable tiles at column x for y in [y0,y1].",
+    "_note": "OPTIONAL 2D enrichment for lane-based movement. `cols` are vertical walkable columns that bridge the North (rows 8-11) and South (rows 26-29) corridors through Johnson Park. The CURRENT sim (sim/sim-server.ts) walkability is rows-only and IGNORES this field, so intra-corridor A* is unaffected; cross-corridor routing turns on only when W2-move teaches walkable()/insideTile() to read it (see HOOKS SPEC). Each col entry: walkable tiles at column x for y in [y0,y1].",
     "cols": [
       { "x": 31, "y0": 8, "y1": 29 },
       { "x": 32, "y0": 8, "y1": 29 }
@@ -51,7 +51,7 @@
         { "id": "market-crates", "label": "delivery crates", "kind": "shelf", "x": 2, "y": 7 }
       ] } },
     { "id": "depot", "type": "shop", "label": "Harvey Oak Supply Store", "area": "main-square", "x": 23, "y": 2, "w": 9, "h": 6, "door": { "x": 27, "y": 8 }, "color": "#8a6d3b", "goods": [{ "id": "delivery", "price": "$0.03" }],
-      "producer": { "produces": "delivery", "ratePerGameHour": 4, "note": "Harvey Oak is the goods PRODUCER — creates stock over game-time (W5 economy hook)." },
+      "producer": { "produces": "delivery", "ratePerGameHour": 4, "note": "Harvey Oak is the goods PRODUCER — creates stock over game-time." },
       "rooms": [
         { "id": "supply-floor", "label": "supply floor", "objects": [{ "id": "supply-counter", "label": "supply counter" }, { "id": "tool-wall", "label": "wall of tools" }, { "id": "supply-register", "label": "register" }] },
         { "id": "supply-workshop", "label": "workshop", "objects": [{ "id": "workbench", "label": "workbench" }, { "id": "supply-crate", "label": "supply crate", "state": "stocked" }, { "id": "pallet-jack", "label": "pallet jack" }] }

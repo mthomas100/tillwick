@@ -1,4 +1,4 @@
-// scripts/verify-s0-1.ts — GATED S0-1 live runtime-verify (bounded, incident-safe; modeled on verify-2c.ts).
+// scripts/verify-s0-1.ts — GATED S0-1 live runtime-verify (bounded; modeled on verify-2c.ts).
 //
 // PROVES the ToolSearch tax is dead, in a REAL transcript:
 //   1. boots the sim (never calls an LLM) + attaches a WS viewer (satisfies pause-on-no-viewer),
@@ -14,7 +14,7 @@
 //   It also re-confirms the buy-GUARD is intact by static-reading citizen.ts (canUseTool buy-veto present).
 //
 // Bounds (each independent): MAX_TICKS=3 · 3-min run cap · HARD_TIMEOUT 180s · viewer attached throughout · Max
-// only (no paid key — D11). Cleanup is bulletproof (try/finally + SIGKILL + pkill), same as verify-2c.ts.
+// only (no paid key). Cleanup is bulletproof (try/finally + SIGKILL + pkill), same as verify-2c.ts.
 //
 // USAGE (coordinate the :4042 slot through `main` first):  npx tsx scripts/verify-s0-1.ts [citizenId=baker]
 import { spawn, type ChildProcess } from "node:child_process";
@@ -35,7 +35,7 @@ const TAPE = join(DATA, "agents", `${ID}.jsonl`);
 // The ONLY tools the session should surface after S0-1 (8 world tools). Anything else in the init list is a leak.
 const WORLD_TOOLS = ["look", "move", "enterShop", "inventory", "consume", "evaluate_purchase", "buy", "talk"].map((t) => `mcp__world__${t}`);
 // Any tool that is NOT one of our 8 world tools is "noise". Catch the claude.ai cloud connectors
-// (mcp__claude_ai_*: Gmail/Calendar/Drive — injected by the subscription login) AND the Claude-Code built-ins.
+// (mcp__claude_ai_*: Gmail/Calendar/Drive — injected by a Claude login) AND the Claude-Code built-ins.
 const INHERITED_NOISE = /^mcp__claude_ai_|Gmail|Google_Calendar|Google_Drive|^Cron|^Task|NotebookEdit|^ToolSearch|^Bash$|^Read$|^Edit$|^Write$|^Glob$|^Grep$|AskUserQuestion|EnterPlanMode|^WebSearch$|^WebFetch$/;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -47,13 +47,13 @@ const childProcs: ChildProcess[] = [];
 const citizenProcs: ChildProcess[] = [];
 let ws: WebSocket | null = null;
 
-// ATTACH=1 → a sim is ALREADY live on :4042 (e.g. the lead's consolidated Stage-0 slot). Attach to it:
-// do NOT pkill the sim, do NOT boot one, and on cleanup kill ONLY the citizen we spawned (never the lead's sim).
+// ATTACH=1 → a sim is ALREADY live on :4042 (e.g. a demo you started). Attach to it:
+// do NOT pkill the sim, do NOT boot one, and on cleanup kill ONLY the citizen we spawned (never the existing sim).
 // Default (ATTACH unset) → own the slot: killStale + boot our own sim + full teardown (the verify-2c.ts model).
 const ATTACH = process.env.ATTACH === "1";
 
 // Kill ONLY citizen processes (safe in both modes — we never want a citizen lingering, but in ATTACH mode we
-// must leave the lead's sim untouched).
+// must leave the existing sim untouched).
 async function killStaleCitizens() {
   spawn("pkill", ["-9", "-f", "citizens/citizen.ts"]);
   await sleep(600);
@@ -66,7 +66,7 @@ async function killStaleAll() {
 async function cleanup() {
   try { ws?.close(); } catch { /* */ }
   for (const p of childProcs) { try { p.kill("SIGKILL"); } catch { /* */ } }
-  // ATTACH: only reap citizens (leave the lead's sim). OWN: reap citizens + our sim.
+  // ATTACH: only reap citizens (leave the existing sim). OWN: reap citizens + our sim.
   if (ATTACH) await killStaleCitizens(); else await killStaleAll();
 }
 
@@ -86,7 +86,7 @@ function newLines(fromByte: number): Array<Record<string, unknown>> {
 
 async function main() {
   console.log(ATTACH ? "MODE: ATTACH — using the existing live sim on :4042 (will NOT boot/kill a sim)." : "MODE: OWN — booting a fresh sim on :4042 (verify-2c.ts model).");
-  // In OWN mode, clear any stale procs first. In ATTACH mode, only clear stale CITIZENS (never the lead's sim).
+  // In OWN mode, clear any stale procs first. In ATTACH mode, only clear stale CITIZENS (never the existing sim).
   if (ATTACH) await killStaleCitizens(); else await killStaleAll();
 
   // STATIC pre-check: the buy-GUARD must still be present in citizen.ts (it must survive the S0-1 options change).
@@ -94,14 +94,14 @@ async function main() {
   const guardOk = /canUseTool:\s*async/.test(citizenSrc) && /toolName !== "mcp__world__buy"/.test(citizenSrc);
   const hookOk = /tools:\s*\[\]/.test(citizenSrc); // the S0-1 citizen.ts hook (strip built-ins) must be applied
   console.log(`static: buy-GUARD present = ${guardOk}; citizen.ts \`tools:[]\` hook applied = ${hookOk}`);
-  if (!hookOk) console.log("⚠ citizen.ts `tools:[]` hook NOT yet applied — the init list will still contain built-ins. Have the lead apply it first.");
+  if (!hookOk) console.log("⚠ citizen.ts `tools:[]` hook NOT yet applied — the init list will still contain built-ins. Apply it first.");
 
   // Capture the tape's byte offset BEFORE the run so we read ONLY this run's lines.
   const fromByte = existsSync(TAPE) ? statSync(TAPE).size : 0;
   console.log(`tape baseline: ${TAPE} @ ${fromByte} bytes (reading only NEW lines after this)`);
 
   if (ATTACH) {
-    // Attach to the lead's live sim. Do NOT spawn one; just confirm it answers (don't push it into childProcs,
+    // Attach to the existing live sim. Do NOT spawn one; just confirm it answers (don't push it into childProcs,
     // so cleanup never kills it).
     if (!(await get("/meta"))) throw new Error("ATTACH=1 but no sim is answering on :4042 — start one (or run without ATTACH).");
     console.log("✓ attached to existing sim on :4042");
@@ -114,14 +114,14 @@ async function main() {
     console.log("✓ sim up");
   }
 
-  // Attach our own viewer either way (harmless if the lead already has one — both satisfy pause-on-no-viewer).
+  // Attach our own viewer either way (harmless if one is already attached — both satisfy pause-on-no-viewer).
   ws = new WebSocket("ws://localhost:4042");
   await new Promise<void>((res) => { ws!.on("open", () => res()); ws!.on("error", () => res()); setTimeout(res, 3000); });
   console.log("✓ viewer attached (pause-on-no-viewer satisfied)");
 
   if (ATTACH) {
-    // Be PURELY ADDITIVE on the lead's sim: enable our target if it isn't, but do NOT disable the others and do
-    // NOT restart the run (that would disrupt the lead's consolidated pass). Assume the run is already going.
+    // Be PURELY ADDITIVE on the existing sim: enable our target if it isn't, but do NOT disable the others and do
+    // NOT restart the run (that would disrupt whatever run is going). Assume the run is already going.
     await post("/control", { action: "set-agent", id: ID, enabled: true });
     console.log(`✓ ensured ${ID} enabled on the existing run (left the rest of the roster + run-state untouched)`);
   } else {

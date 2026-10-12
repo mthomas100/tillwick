@@ -2,14 +2,14 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-// sim/interiors.ts — Wave B1: the INTERIOR data model + presence ("who is inside which building, and WHERE
+// sim/interiors.ts — the INTERIOR data model + presence ("who is inside which building, and WHERE
 // in it"). The keystone seam for stepping inside a building and seeing agents busy there.
 //
 // THE LOAD-BEARING DECISION (de-risk): an interior is its OWN local coordinate space per
 // building — a w×h grid with origin (0,0), DISTINCT from the world tile grid. The exterior world (footprints,
 // doors, lanes, walkability, A1 spawns, pathfinding) is COMPLETELY UNTOUCHED. An agent that is "inside" has
 // TWO positions: its WORLD position (the existing inside-tile — exterior view, unchanged) and an interiorPos
-// (this module's local grid + a sub-location id — the interior view scenewright's B2 scene renders). Nothing
+// (this module's local grid + a sub-location id — the interior view the interior scene renders). Nothing
 // exterior reads interiorPos; the interior never reads world x,y. Disjoint spaces ⇒ zero exterior regression.
 //
 // TWO HALVES, by concern:
@@ -28,7 +28,7 @@ import { dirname, join } from "node:path";
 const HERE = dirname(fileURLToPath(import.meta.url)); // sim/
 const ROOT = dirname(HERE); // repo root
 
-// ---- types (PUBLISHED contract — scenewright B2 + decorator B3 build to this) -----------------------------
+// ---- types (PUBLISHED contract — the interior scene and art pack build to this) -----------------------------
 export type SublocationKind =
   | "counter" | "table" | "desk" | "stage" | "bed" | "shelf" | "appliance" | "register" | "seat";
 export type Seat = { x: number; y: number };
@@ -44,9 +44,9 @@ export type Sublocation = {
 export type Interior = {
   w: number;           // interior local grid width  (tiles)
   h: number;           // interior local grid height (tiles)
-  theme: string;       // art theme → decorator's LimeZu tileset (kitchen|grocery|bedroom|classroom|pub|living|civic|workshop)
-  floor?: string;      // optional floor material hint (Room_Builder): wood|wood-dark|tile|stone|carpet (decorator B3; unknown→wood)
-  wall?: string;       // optional wall material hint (Room_Builder): plaster|wood|brick|tile (decorator B3; unknown→plaster)
+  theme: string;       // art theme → the LimeZu tileset (kitchen|grocery|bedroom|classroom|pub|living|civic|workshop)
+  floor?: string;      // optional floor material hint (Room_Builder): wood|wood-dark|tile|stone|carpet (unknown→wood)
+  wall?: string;       // optional wall material hint (Room_Builder): plaster|wood|brick|tile (unknown→plaster)
   tile?: number;       // optional source tile px the interior art assumes (informational for B2 scaling)
   sublocations: Sublocation[];
   spawnInside: { x: number; y: number }; // where an agent appears on entry (interior side of the door)

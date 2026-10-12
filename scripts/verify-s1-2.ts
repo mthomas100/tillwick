@@ -1,7 +1,7 @@
 // scripts/verify-s1-2.ts — GATED S1-2 zero-token e2e (role-specific tool sets + producer verbs). NO LLM is
 // called — it asserts the per-role surface from roleToolNames() (pure, no sim) AND drives the sim's /act
 // `produce` branch directly over HTTP (zero model tokens). It DOES boot a sim on :4042 for the routing half,
-// so it is GATED on the team's single :4042 slot (coordinate through the lead before running).
+// so it needs :4042 free (don't run it while a live demo uses that port).
 //
 // PROVES: (1) each role boots with its OWN producer verb + the shared core (baker has `bake` not `brew`,
 // courier has `deliver` not `bake`); (2) a producer verb routes through /act and actually creates stock in the

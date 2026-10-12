@@ -1,20 +1,20 @@
-// God's-eye TELEMETRY HARNESS (Wave A2 — the INSTRUMENT) — the "is it alive?" scorecard, computed from
+// God's-eye TELEMETRY HARNESS (the INSTRUMENT) — the "is it alive?" scorecard, computed from
 // the sim's own logs, so an agent can tell whether the town behaves as intended without watching the
-// canvas: grade each bounded run on M1-M8 and watch the numbers, not a screenshot. This is the harsh-critic's gauge AND the lead's before/after gate for the A1 keystone.
+// canvas: grade each bounded run on M1-M8 and watch the numbers, not a screenshot. This is the gauge AND the before/after gate for the schedule keystone.
 //
 // DESIGN:
 //   • PURE CORE. `computeTelemetry(input)` is a pure function of (already-parsed logs + world + roleConfig)
-//     → unit-testable with fixtures, no fs, no clock, no LLM (D11 + the sim-never-calls-LLM invariant: the
+//     → unit-testable with fixtures, no fs, no clock, no LLM (the sim-never-calls-LLM invariant: the
 //     harness is a sibling READER, same rule). A thin `loadTelemetryInput()` does the fs reading.
 //   • POSITION FROM TRACES, not `move` events. `trace.perceived.shop` is the sim-RESOLVED building; raw
 //     `perceived.at.{x,y}` is the cross-check. `move.payload.to` is free-text LLM intent (unmappable) —
-//     used only for the activity stream, never for M1/M2. (D-A2-1.)
+//     used only for the activity stream, never for M1/M2.
 //   • GAME-CLOCK for "per day". `day = floor(gameMin/1440)+1` — mirrors run-state.ts so buckets match the
-//     sim's own clock; never invent a second clock (D13). Run SELECTION is by wall-clock `ts`. (D-A2-2.)
+//     sim's own clock; never invent a second clock. Run SELECTION is by wall-clock `ts`.
 //   • DEGRADE-DON'T-DIE. Every line is parsed try/catch-skip; a torn-mid-write JSONL never throws. The
 //     harness NEVER writes to sim/data. (The repo grain: trace.ts/memory-stream.ts.)
 //   • ROLE MAP IS A PARAMETER, printed in the scorecard, so M2 is honest about what it graded against and
-//     swapping to behaviorist's A1 map is one line. (D-A2-4.)
+//     swapping to the building map is one line.
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -86,12 +86,12 @@ export type World = {
 };
 
 /**
- * The A1 schedule model M2 grades against. SINGLE SOURCE OF TRUTH = behaviorist's building-map.ts (workplace)
+ * The A1 schedule model M2 grades against. SINGLE SOURCE OF TRUTH = citizens/building-map.ts (workplace)
  * + personas.ts routines (work-windows). PER-ROLE windows are load-bearing: a uniform 08:00–17:00 would
  * FALSE-NEGATIVE the night-owls (musician 16:00–23:00, regular 18:00–23:00) and the pre-dawn baker
  * (05:00–15:00). `movementRoles` are graded on MOVEMENT, not "% at workplace" — the courier's job is to
  * crisscross town (the depot is a base, not a seat), so scoring him on "% at depot" would read his doing-his-
- * job as an M2 failure (behaviorist's caveat; option (a): exclude from the at-workplace mean, credit M1
+ * job as an M2 failure (a known caveat; option (a): exclude from the at-workplace mean, credit M1
  * movement instead, and FLAG it so it's not a silent regression).
  */
 export type RoleConfig = {
@@ -99,7 +99,7 @@ export type RoleConfig = {
   workWindows: Record<string, { startMin: number; endMin: number }>; // agentId → on-shift band, minutes-of-day [start,end)
   defaultWindow: { startMin: number; endMin: number }; // for any agent not in workWindows
   movementRoles: Set<string>; // graded on movement/distinct-buildings in-window, NOT "% at workplace" (e.g. courier)
-  /** T0: lifegiver's schedule spine (citizens/schedules.ts stepAt). When present, M2 grades against the
+  /** T0: the schedule spine (citizens/schedules.ts stepAt). When present, M2 grades against the
    *  FULL-DAY SCHEDULE (expected building per minute) instead of the flat workplace map — the courier's
    *  delivery route and the baker's 13:00 grocer errand are ON-plan, not truancy. Soft-resolved like the
    *  workplace map; absent → the legacy at-workplace grading (fallback intact). */
@@ -180,7 +180,7 @@ export function topStreetBuildings(world: World): Set<string> {
   return new Set(area?.buildings ?? world.buildings.filter((b) => b.type === "shop").map((b) => b.id));
 }
 
-/** The north street + sidewalk rows the operator watches agents hug (street.rows[0..1] + sidewalks). */
+/** The north street + sidewalk rows agents tend to hug (street.rows[0..1] + sidewalks). */
 function topStreetRows(world: World): Set<number> {
   const rows = new Set<number>();
   const s = world.street?.rows ?? [];
@@ -338,13 +338,13 @@ function metricM2(pos: TickPos[], cfg: RoleConfig): MetricResult {
   };
 }
 
-// M2 (schedule mode — T0, lifegiver's ask): grade every agent against the FULL-DAY schedule spine
+// M2 (schedule mode — T0): grade every agent against the FULL-DAY schedule spine
 // (citizens/schedules.ts stepAt): a tick is adherent when the agent is at the building its schedule names
 // for that minute — so the courier's cross-town route and the baker's 13:00 grocer errand are ON-plan.
 // ±GRACE_MIN absorbs block-boundary walks (13:00 baker mid-street to the grocer is not truancy). The
 // movement exemption dissolves in this mode (the route IS the schedule). Sleep blocks are excluded from
 // grading: citizens rarely tick while their schedule says sleep, and "was asleep at home" is not the
-// operator's question.
+// question.
 const SCHEDULE_GRACE_MIN = 12;
 
 function metricM2Schedule(pos: TickPos[], cfg: RoleConfig, stepAt: NonNullable<RoleConfig["stepAt"]>): MetricResult {
@@ -463,7 +463,7 @@ function metricM5(relations: Record<string, RelationLine[]>): MetricResult {
   const possible = n > 1 ? n * (n - 1) : 0;
   const density = possible ? formed / possible : 0;
 
-  // single-run snapshot can't show "grows" by itself → grade on density presence; the lead reads the
+  // single-run snapshot can't show "grows" by itself → grade on density presence; a reader checks the
   // trend across two `grade` calls. >0.3 density = pass (a connected town), >0.1 = warn, else fail.
   const grade: Grade = all.length === 0 ? "fail" : density >= 0.3 ? "pass" : density >= 0.1 ? "warn" : "fail";
   return {
@@ -597,7 +597,7 @@ export function metricM7(tape: TapeBeat[] | undefined, agents: string[]): Metric
 }
 
 // ───────────────────────── M9 · aliveness density (T0-tape; NEW) ─────────────────────────
-// "Meaningful events per agent per game-hour" — the operator's boredom, quantified. Excludes heartbeat
+// "Meaningful events per agent per game-hour" — boredom, quantified. Excludes heartbeat
 // noise (online, pos/tick machinery) and DEDUPES the double-emit bug (same actor+kind ≤2s — audit §5) so
 // the number can't be inflated by duplicate writes. Dialogues count once each (turns ≥1).
 
@@ -738,7 +738,7 @@ export function computeTelemetry(input: TelemetryInput): Telemetry {
 }
 
 // ═════════════════════════ /agent/:id/activity — the B5 Activity-tab CONTRACT ═════════════════════════
-// The in-GUI tmux stream of an agent's thoughts/tools/actions (Pillar IV). scenewright's B5 tab consumes
+// The in-GUI tmux stream of an agent's thoughts/tools/actions . The inspector's activity tab consumes
 // THIS shape. We merge the structured per-tick TRACE (thought + result + position) with the world-visible
 // EVENTS (move/say/purchase/produce/give/…), newest-first. Pure over already-parsed inputs (testable);
 // the fs reader `loadAgentActivity` feeds it from disk.
@@ -784,7 +784,7 @@ export type ActivityItem = {
   item?: string;
   price_usdc?: number;
   txHash?: string;
-  emoji?: string; // for kind:"status" — the visible-status glyph (🥖/🎸/…) behaviorist emits
+  emoji?: string; // for kind:"status" — the visible-status glyph (🥖/🎸/…) a citizen emits
   verb?: string; // for kind:"status" — the action verb (bake/busk/forge/…)
 };
 
@@ -865,7 +865,7 @@ function describeEvent(e: EventLine): string {
     case "use": return `🔧 uses ${str(p.item)} (remaining ${num(p.remaining)})`;
     case "online": return `🟢 ${str(p.name) || e.actor} comes online`;
     case "decision": return `🧭 decides: ${oneline(str(p.reason), 160)}`;
-    // visible-status (behaviorist's "🥖 baking…" — A1 status emit / B4): compose emoji + label (+ where),
+    // visible-status ("🥖 baking…" — A1 status emit / B4): compose emoji + label (+ where),
     // so EVERY consumer gets the nice row (not the bare "status"). Falls back gracefully if a field is absent.
     case "status": {
       const label = oneline(str(p.text) || str(p.verb) || "working", 80);
@@ -913,7 +913,7 @@ const ROSTER = ["baker", "barista", "grocer", "courier", "smith", "student", "mu
 
 const hr = (startHr: number, endHr: number) => ({ startMin: startHr * 60, endMin: endHr * 60 });
 
-// Hardcoded fallbacks — used ONLY if behaviorist's building-map.ts can't be imported (keeps telemetry runnable
+// Hardcoded fallbacks — used ONLY if citizens/building-map.ts can't be imported (keeps telemetry runnable
 // standalone). Kept byte-identical to citizens/building-map.ts (workplace + WORK_WINDOW + DEFAULT_WINDOW).
 const FALLBACK_WORKPLACE: Record<string, string | null> = {
   baker: "bakery", barista: "cafe", grocer: "grocer", courier: "depot", smith: "smithy",
@@ -925,21 +925,21 @@ const FALLBACK_WINDOWS: Record<string, { startMin: number; endMin: number }> = {
 };
 const FALLBACK_DEFAULT_WINDOW = hr(8, 18); // matches building-map.ts DEFAULT_WINDOW [8,18]
 
-// behaviorist's published building-map.ts surface (the SINGLE SOURCE for workplace + work-windows).
+// the published citizens/building-map.ts surface (the SINGLE SOURCE for workplace + work-windows).
 type BuildingMapModule = {
   buildingMapFor: (id: string) => { workId: string; homeId: string; hangoutId: string };
   workWindowFor?: (id: string) => [number, number]; // [startHr, endHr] — added for the B6 fix (may be absent in older trees)
 };
 
 /**
- * Resolve the role→workplace map AND per-role work-windows from ONE import of behaviorist's building-map.ts —
+ * Resolve the role→workplace map AND per-role work-windows from ONE import of citizens/building-map.ts —
  * the SAME `buildingMapFor` the ACT prompt + planDay use AND the SAME `workWindowFor` the B6 "pull non-producers
  * to work" fix uses. So M2 grades against the EXACT map + windows the citizens execute (no drift, ever; a future
  * band tweak updates behavior + grader together). Async import keeps the dependency SOFT — a citizen-layer load
  * error never breaks grading; M2 falls back to the byte-identical local tables.
  */
 export async function resolveRoleConfig(): Promise<Pick<RoleConfig, "workplace" | "workWindows" | "defaultWindow" | "stepAt">> {
-  // T0: prefer lifegiver's schedule spine for M2 (grade vs the full-day schedule, not the flat workplace).
+  // T0: prefer the schedule spine for M2 (grade vs the full-day schedule, not the flat workplace).
   // Soft import, same rule as building-map: a citizen-layer load error never breaks grading.
   let stepAt: RoleConfig["stepAt"];
   try {
@@ -970,34 +970,34 @@ export async function resolveWorkplaceMap(): Promise<Record<string, string | nul
   return (await resolveRoleConfig()).workplace;
 }
 
-// DATA-DRIVEN where a source exists; SINGLE-SOURCE where one doesn't (anti-drift, per the lead's note):
-//   • workplace  → IMPORTED from behaviorist's buildingMapFor (building-map.ts) — NOT a hand-table. The same
+// DATA-DRIVEN where a source exists; SINGLE-SOURCE where one doesn't (anti-drift):
+//   • workplace  → IMPORTED from buildingMapFor (building-map.ts) — NOT a hand-table. The same
 //                  resolver the citizens execute, so what we grade == where they go. Zero drift by construction.
-//   • workWindows→ IMPORTED from behaviorist's `workWindowFor` (building-map.ts) — the SAME bands the B6 fix
+//   • workWindows→ IMPORTED from `workWindowFor` (building-map.ts) — the SAME bands the B6 fix
 //                  uses to pull non-producers to work during their window. One source ⇒ a future band tweak
 //                  updates the agent behavior AND this grader together (no silent divergence). Falls back to a
-//                  byte-identical local table (FALLBACK_WINDOWS) only if the import fails. behaviorist derived
+//                  byte-identical local table (FALLBACK_WINDOWS) only if the import fails. The bands were derived
 //                  the bands from each persona's PROSE routine; that derivation now lives in code, not here.
 //   • movementRoles → MINE (a grading-only concern, correctly NOT in building-map): the courier is graded on M1
-//                  movement, not "% at workplace" (his depot is a base, not a seat — behaviorist's caveat).
+//                  movement, not "% at workplace" (the depot is a base, not a seat).
 //   • a runtime GUARD (validateRoleConfig, surfaced in the scorecard header) catches the real drift mode:
 //                  a role whose window/movement entry no longer matches the resolved workplace map.
 
 /**
- * Default role config (D-A2-4). workplace + workWindows + defaultWindow are RESOLVED from behaviorist's
+ * Default role config. workplace + workWindows + defaultWindow are RESOLVED from
  * building-map.ts in one import (so the grader == the citizens, by construction); movementRoles is mine.
  * Built at module init via top-level await (NodeNext ESM) so the const is ready for synchronous consumers.
  */
 export const DEFAULT_ROLE_CONFIG: RoleConfig = {
   ...(await resolveRoleConfig()), // { workplace, workWindows, defaultWindow } — single source = building-map.ts
-  movementRoles: new Set(["courier"]), // crisscrosses town delivering — the M1 hero, M2-exempt (behaviorist's caveat)
+  movementRoles: new Set(["courier"]), // crisscrosses town delivering — the M1 hero, M2-exempt
 };
 
 /**
  * Consistency guard (anti-drift): returns human warnings if the role config has drifted out of sync with the
  * resolved workplace map — a window/movement entry for a role NOT in the workplace map, or a workplace role
  * with NO window (falls back to defaultWindow, which may mis-grade a night-owl). Surfaced in the scorecard
- * header so drift is visible the moment behaviorist renames a role in building-map.ts without telling the band
+ * header so drift is visible the moment someone renames a role in building-map.ts without telling the band
  * table. Empty array = in sync.
  */
 export function validateRoleConfig(cfg: RoleConfig): string[] {
@@ -1255,7 +1255,7 @@ function runSelfTest(): void {
     student: [rel("baker", 2.9, 2)],
   };
   // LEGACY-mode config (stepAt stripped): the at-workplace/movement-exempt fixture asserts below grade the
-  // FALLBACK path, which must stay intact for trees without lifegiver's schedules.ts.
+  // FALLBACK path, which must stay intact for trees without citizens/schedules.ts.
   const legacyCfg: RoleConfig = { ...DEFAULT_ROLE_CONFIG, stepAt: undefined };
   const t = computeTelemetry({ events, dialogues, traces, relations, world, roleConfig: legacyCfg });
 
@@ -1272,7 +1272,7 @@ function runSelfTest(): void {
   assert((m("M2").detail.gradedSeatedRoles as number) === 2, "M2: only the 2 seated roles (baker, student) feed the mean");
   // per-role windows applied: baker's band is 05:00–15:00 (NOT the uniform 08–17 that would mis-grade pre-dawn).
   assert((m("M2").detail.perRoleWindows as any).baker === "05:00–15:00" && (m("M2").detail.perRoleWindows as any).musician === "16:00–23:00", "M2: per-role windows applied (baker pre-dawn, musician night)");
-  // M2 SCHEDULE MODE (T0, lifegiver): grade vs a deterministic stub schedule — proves the courier's
+  // M2 SCHEDULE MODE (T0): grade vs a deterministic stub schedule — proves the courier's
   // cross-town route reads GREEN (it was movement-exempt/false-red before) and sleep blocks are excluded.
   const stubStep: RoleConfig["stepAt"] = (id, m) => {
     if (id === "baker") return m >= 300 && m < 900 ? { buildingId: "bakery", kind: "work" } : { buildingId: "home-baker", kind: "sleep" };
@@ -1335,7 +1335,7 @@ function runSelfTest(): void {
   assert(act.every((i) => typeof i.ts === "string"), "agentActivity: every item has a ts");
   assert(act.some((i) => i.kind === "result" && typeof i.costUsd === "number"), "agentActivity: a result item carries costUsd");
   assert(act.some((i) => i.source === "event" && i.kind === "purchase" && i.txHash === "0xabc"), "agentActivity: baker's on-chain purchase surfaces with txHash");
-  // status row composes the rich label (NOT bare "status") + surfaces emoji/verb structurally (scenewright's polish).
+  // status row composes the rich label (NOT bare "status") + surfaces emoji/verb structurally.
   const statusItem = act.find((i) => i.kind === "status");
   assert(!!statusItem && statusItem.text === "🥖 baking… @ bakery", `agentActivity: status row composes "🥖 baking… @ bakery" (got "${statusItem?.text}")`);
   assert(statusItem?.emoji === "🥖" && statusItem?.verb === "bake", "agentActivity: status row carries emoji+verb for structural consumers");

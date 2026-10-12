@@ -46,7 +46,7 @@ export function logPretty(id: string, tick: number, msg: unknown): string | null
     const cost = m.total_cost_usd;
     const denied = (m.permission_denials ?? []).length;
     const note = denied ? ` · ${denied} GUARD veto(es)` : "";
-    // cost_usd is an API list-price figure: real spend with an API key, notional on a subscription. Shown for info.
+    // cost_usd is an API list-price figure: real spend with an API key, notional with a Claude login. Shown for info.
     return `  [${tag}] ✓ ${m.subtype}${cost != null ? ` (notional cost_usd=${cost})` : ""}${note}`;
   }
   return null;

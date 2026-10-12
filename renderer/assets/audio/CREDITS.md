@@ -25,8 +25,8 @@ Courtesy credit for Town Theme RPG (optional): `cynicmusic.com pixelsphere.org`.
 Each source page was re-checked on 2026-10-05: author as listed above, licence CC0 on every page.
 
 ## Notes
-- 10 tracks for variety per operator request — cozy + cute NES/chiptune (Zelda / Stardew /
-  Shovel Knight charm). Tracks 6–10 added in the expansion-to-10 pass.
+- 10 tracks for variety — cozy + cute NES/chiptune (Zelda / Stardew /
+  Shovel Knight charm).
 - **All normalized to 192 kbps stereo MP3 + loudness-normalized** (ffmpeg `loudnorm`,
   target −16 LUFS / −1.5 dBTP). This (a) gives one uniform `audio/mpeg` content-type — no
   per-codec serving risk, (b) keeps every track at consistent perceived loudness so none

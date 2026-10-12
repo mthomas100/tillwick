@@ -12,7 +12,7 @@ import { type Complete } from "./llm.js";
 // / plan / re-summarize → render context for the prompt → act. citizen.ts owns the ACT turn (the tool-using
 // SDK query); Mind owns everything cognitive AROUND it and supersedes the ad-hoc recentDigest.
 //
-// SEAM DISCIPLINE (llm.ts, INC-2026-06-18): every model call goes through the INJECTED `Complete` — NO SDK
+// SEAM DISCIPLINE (llm.ts): every model call goes through the INJECTED `Complete` — NO SDK
 // import here; unit-tested with stubComplete at ZERO token spend. The real Claude-backed Complete is injected by
 // the citizen runtime at wiring.
 //
@@ -33,7 +33,7 @@ export type MindOpts = {
   summaryEveryGameMin?: number; // summary refresh cadence (default = summary.ts's 3 game-hours)
   /** T0 life-spine: a deterministic daily-agenda template (schedules.ts agendaLines). When set,
    *  ensureDailyPlan seeds TODAY's plan from these lines at ZERO token cost instead of the planDay LLM call
-   *  (audit 2026-07-18: at 4-8 acted ticks/day, a vague generated plan burns the whole day; each planDay is
+   *  (at 4-8 acted ticks/day, a vague generated plan burns the whole day; each planDay is
    *  a 10-35s CLI spawn). reactAndMaybeReplan still writes LLM plan lines ON TOP; currentStep prefers the
    *  newest line per time-slot, so a reaction overrides the template for the rest of its bracket. */
   planTemplate?: () => string[];
@@ -54,7 +54,7 @@ export class Mind {
   private lastPlanDay = -1; // game-day a daily plan was last generated for (-1 = never)
   private lastDecomposeHour = -1; // absolute game-hour decomposeCurrent last refined a chunk for (-1 = never)
   // The scored working-set from the MOST RECENT contextFor() retrieval, cached so the citizen loop can
-  // record it in the per-tick trace (OBSERVABILITY §7) WITHOUT re-running retrieval (zero extra tokens) and
+  // record it in the per-tick trace (docs/design/observability.md §7) WITHOUT re-running retrieval (zero extra tokens) and
   // WITHOUT widening renderTick's {prompt, perceived} return. Read via lastRetrieved(); empty until the
   // first contextFor() / on a retrieval-degrade tick.
   private lastWorkingSet: ScoredMemory[] = [];
@@ -114,7 +114,7 @@ export class Mind {
   /**
    * The scored working-set from the most recent contextFor() retrieval (recency·importance·relevance
    * breakdown per memory) — the citizen loop reads this to record WHY each memory surfaced in the per-tick
-   * trace (OBSERVABILITY §7), with no extra retrieval. Returns a COPY so a caller can't mutate Mind state;
+   * trace (docs/design/observability.md §7), with no extra retrieval. Returns a COPY so a caller can't mutate Mind state;
    * empty before the first contextFor() or after a retrieval-degrade tick.
    */
   lastRetrieved(): ScoredMemory[] {
@@ -188,10 +188,10 @@ export class Mind {
   }
 
   /**
-   * THE CURRENT PLAN STEP (Wave A1 — the keystone wiring). Map "now" (game-minutes) to the agenda line the
+   * THE CURRENT PLAN STEP (the keystone wiring). Map "now" (game-minutes) to the agenda line the
    * agent should be executing: the most-recent kind:"plan" memory whose parsed start-time bracket contains
    * `nowGameMin` (line N starts at its time and runs until the NEXT line's time). This is what the daily plan
-   * was FOR — it was generated each day (ensureDailyPlan/planDay) then thrown away at the ACT prompt (D23).
+   * was FOR — it was generated each day (ensureDailyPlan/planDay) then thrown away at the ACT prompt.
    * currentStep() is the missing reader that turns "7:00am — open the cafe" into a target the prompt can act on.
    *
    * Returns the chosen plan line's text + its parsed start-minute (minutes-since-midnight), or null when there

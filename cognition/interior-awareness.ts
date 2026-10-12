@@ -2,12 +2,12 @@
 // per-sublocation picture (empty vs occupied · WHO is at each spot · what's purchasable · is a conversation
 // happening there) AND a clear, occupancy-aware DECISION MENU the ACT prompt presents so an agent can choose
 // where to go inside — work the register, buy at the counter, sit at an EMPTY table, or JOIN a table where
-// people are talking (the operator's exact decision list, Pillar II).
+// people are talking (the full decision list).
 //
 // PURE + STATELESS (the seam pattern: like perception.ts / interiors.ts defs — no I/O, no LLM, no SDK). Consumes
 // ONLY plain data the perception already has: the `InsideHere` block (sublocations + flat occupants, both
 // interior-local), the building's goods (for "purchasable"), and an optional list of live conversations at this
-// building (from earshot/dialogue). Returns enriched spots + the menu strings. behaviorist's perception.ts /
+// building (from earshot/dialogue). Returns enriched spots + the menu strings. perception.ts /
 // world-tools.ts call these; this module invents no new transport.
 //
 // WHY THIS EXISTS: the data to tell an EMPTY table from one where
@@ -40,7 +40,7 @@ export type EnrichedSpot = {
   seatCount: number;         // total seats (0 for a single-spot station/appliance)
   freeSeats: number;         // seatCount - occupants-here (clamped ≥0); for a seated spot, >0 means "you can sit"
   occupied: boolean;         // someone (other than self) is here
-  empty: boolean;            // a seated spot with no one here (the "EMPTY table" the operator wants to distinguish)
+  empty: boolean;            // a seated spot with no one here (an "EMPTY table", distinct from an occupied one)
   purchasable: boolean;      // a register/counter at a shop that sells goods → you can buy here
   sells: string[];           // the good ids purchasable here (when purchasable)
   conversationHere: boolean; // a live dialogue is happening at this spot
@@ -135,7 +135,7 @@ export type InteriorMenu = {
 };
 
 /**
- * Build the occupancy-aware interior MENU + a goal-aware suggestion. Implements the operator's exact decision
+ * Build the occupancy-aware interior MENU + a goal-aware suggestion. Implements the decision
  * list: work your station (at your own workplace) · buy at the register (if you want something) · JOIN a table
  * where people are talking · or take an EMPTY table. Pure — phrasing only; the agent still CHOOSES (go_inside).
  *

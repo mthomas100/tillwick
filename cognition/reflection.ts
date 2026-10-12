@@ -15,7 +15,7 @@ import { type Complete } from "./llm.js";
 //      1, 5, 3)").
 //   5. store each insight as a reflection memory with its citation ids.
 //
-// COST DISCIPLINE (INC-2026-06-18): the model is the INJECTED `Complete` seam (llm.ts) — NO SDK import, NO
+// COST DISCIPLINE: the model is the INJECTED `Complete` seam (llm.ts) — NO SDK import, NO
 // model call at build/test (unit-tested with stubComplete → zero tokens). Importance of a reflection is a
 // fixed default here (REFLECTION_IMPORTANCE); the LLM poignancy scorer is wired separately at integration.
 // Everything degrades rather than throws into a tick: a blank/garbled completion yields no reflections.

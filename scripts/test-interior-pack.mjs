@@ -6,7 +6,7 @@
 //   - NEVER throw on any input (incl. unknown names, null, B1 raw `kind`s, world.json object ids)
 //   - aliases resolve (kind → crop; object-id → crop; rug → carpet floor)
 //   - missing crops degrade per-key (floors/walls → a generated flat tile; objects → null)
-// Independent of interior-scene.js (B2, scenewright) so my deliverable validates on its own.
+// Independent of interior-scene.js so the pack validates on its own.
 
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";

@@ -1,11 +1,11 @@
-// CONVERSATION IGNITION (town-alive audit A1/B1) — the PURE per-tick decision "do I start a conversation
+// CONVERSATION IGNITION — the PURE per-tick decision "do I start a conversation
 // right now, with whom, and why", extracted so it is zero-token testable and shared by the social step.
 //
 // WHY THIS EXISTS (2026-07-18 tape, a 2026-07-18 flight-tape audit):
 // today's funnel was 45 acted ticks → 3 perception-time adjacency sightings → 1 conversation. TWO of the
 // three sightings were killed by the old election in dialogue-driver.pickPartner: "the LOWER id always
 // hosts" — the higher-id agent that actually SAW the partner deferred forever, waiting for a lower-id tick
-// that never aligned (D17's pathology, live in the tape). With ~5 ticks/agent/run, every lost sighting is
+// that never aligned (the old pathology, live in the tape). With ~5 ticks/agent/run, every lost sighting is
 // ~a lost third of the day's social budget. Ignition therefore must convert EVERY sighting it can:
 //
 //   • REPLY MODE (closes the #18 loop end-to-end): if someone ADJACENT said something TO me (heardRecently),
@@ -40,7 +40,7 @@ export type IgnitionInput = {
   sameRoomIds?: string[];
   /** Inbound one-way says directed at me (the /perceive heardRecently ring, oldest→newest). */
   heardRecently?: HeardSay[];
-  /** Enabled roster ids (D17: never initiate with a disabled/dead partner). Empty/omitted ⇒ tolerate
+  /** Enabled roster ids (never initiate with a disabled/dead partner). Empty/omitted ⇒ tolerate
    *  (degrade open — don't let a missing roster block all dialogue). */
   enabledIds?: string[];
   /** Per-pair social bookkeeping (cooldowns, daily counts, answered says). */
@@ -54,7 +54,7 @@ export type IgnitionInput = {
   hostWindowGameMin?: number;
 };
 
-/** D32 (suppression reasons are first-class): the per-candidate verdict this evaluation reached. One entry
+/** Suppression reasons are first-class: the per-candidate verdict this evaluation reached. One entry
  *  per co-present other, ALWAYS returned — the tape beat names the suppressor for every pair every tick, so
  *  a silent day can never be a mystery again ("why didn't X and Y talk?" is answered by the tape). */
 export type CandidateStatus = {
@@ -78,7 +78,7 @@ export type IgnitionDecision =
 /**
  * The per-tick ignition decision. Priority: (1) answer a say from someone still beside me; (2) host a
  * co-location conversation if this window's election says it's my turn. Deterministic given its inputs.
- * Always carries the full per-candidate status ledger (D32 — the caller emits it as an `ignition` beat).
+ * Always carries the full per-candidate status ledger (the caller emits it as an `ignition` beat).
  */
 export function decideIgnition(input: IgnitionInput): IgnitionDecision {
   const cooldown = input.cooldownGameMin ?? 30;
@@ -169,7 +169,7 @@ export class PairSocialState {
   }
 
   /** WHY a conversation with `partner` is blocked right now — "cooldown" | "capped" — or null when clear.
-   *  Split from mayConverse so the D32 ignition beat can name the exact suppressor per candidate. */
+   *  Split from mayConverse so the ignition beat can name the exact suppressor per candidate. */
   blockReason(partner: string, gameMin: number, cooldownGameMin: number, maxPerDay: number): "cooldown" | "capped" | null {
     const last = this.lastConversed.get(partner);
     if (last !== undefined && gameMin - last < cooldownGameMin) return "cooldown";
@@ -285,12 +285,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   assert(sWalk.countToday("zed", 100) === 0, "walk_by does not consume the daily cap");
   assert(!sWalk.mayConverse("zed", 110, 30, 3), "walk_by still cools the pair down");
 
-  // --- disabled partners are never candidates (D17) ---
+  // --- disabled partners are never candidates ---
   const dis = decideIgnition({ selfId: "ada", gameMin: 0, adjacentTo: ["ben"], enabledIds: ["ada"], state: new PairSocialState() });
   assert(dis.attempt === false && dis.reason === "no-candidates", "a disabled partner is not a candidate");
-  assert(dis.candidates.length === 1 && dis.candidates[0].id === "ben" && dis.candidates[0].status === "disabled", "D32: the disabled candidate is NAMED with its suppressor");
+  assert(dis.candidates.length === 1 && dis.candidates[0].id === "ben" && dis.candidates[0].status === "disabled", "the disabled candidate is NAMED with its suppressor");
 
-  // --- D32: the candidate ledger names every suppressor, every evaluation ---
+  // --- the candidate ledger names every suppressor, every evaluation ---
   {
     const s = new PairSocialState();
     let wA = 0;
@@ -300,18 +300,18 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const d = decideIgnition({ selfId: "ada", gameMin: gm, adjacentTo: ["ben", "cara", "dave"], enabledIds: ["ada", "ben", "cara"], state: s });
     const by = new Map(d.candidates.map((c) => [c.id, c.status]));
     assert(d.attempt === true && d.partner === "ben", "ledger case: ben chosen");
-    assert(by.get("ben") === "chosen", "D32 ledger: chosen partner marked");
-    assert(by.get("cara") === "cooldown", "D32 ledger: cooldown named");
-    assert(by.get("dave") === "disabled", "D32 ledger: disabled named");
+    assert(by.get("ben") === "chosen", "ledger: chosen partner marked");
+    assert(by.get("cara") === "cooldown", "ledger: cooldown named");
+    assert(by.get("dave") === "disabled", "ledger: disabled named");
     // and when nothing fires, the ledger still explains each pair:
     const s2 = new PairSocialState();
     let wB = wA;
     while (electedHost("ada", "ben", wB) === "ada") wB++;
     const d2 = decideIgnition({ selfId: "ada", gameMin: wB * 60, adjacentTo: ["ben"], state: s2 });
-    assert(d2.attempt === false && d2.candidates[0].status === "not-host-this-window", "D32 ledger: not-host named on a silent tick");
+    assert(d2.attempt === false && d2.candidates[0].status === "not-host-this-window", "ledger: not-host named on a silent tick");
     const d3 = decideIgnition({ selfId: "ada", gameMin: 0, adjacentTo: [], state: s2 });
-    assert(d3.attempt === false && d3.reason === "no-candidates" && d3.candidates.length === 0, "D32 ledger: empty pool is an explicit empty ledger");
+    assert(d3.attempt === false && d3.reason === "no-candidates" && d3.candidates.length === 0, "ledger: empty pool is an explicit empty ledger");
   }
 
-  console.log("ignition.ts self-test: ALL ASSERTIONS PASSED (windowed election single-host+rotation · reply-mode bypass+once-per-say · same-room union · cooldown/daily-cap · walk_by · disabled-partner · D32 per-candidate suppressor ledger)");
+  console.log("ignition.ts self-test: ALL ASSERTIONS PASSED (windowed election single-host+rotation · reply-mode bypass+once-per-say · same-room union · cooldown/daily-cap · walk_by · disabled-partner · per-candidate suppressor ledger)");
 }
